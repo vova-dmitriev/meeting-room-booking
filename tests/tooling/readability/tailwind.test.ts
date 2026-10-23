@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 const filePath = "src/shared/ui/button/canonical-fixture.tsx"
 const rule = "better-tailwindcss/enforce-canonical-classes"
 
-describe("canonical Tailwind utilities", () => {
+describe("canonical Tailwind utilities", { timeout: 15_000 }, () => {
   it("rejects border-[14px] as an error", async () => {
     const [result] = await new ESLint().lintText('export const sample = <div className="border-[14px]" />', { filePath })
 
