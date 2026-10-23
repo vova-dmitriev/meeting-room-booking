@@ -1,0 +1,54 @@
+rules:
+  - id: rules_lgpl_javascript_eval_rule-eval-require
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              function ($REQ, $RES, ...) {...}
+          - focus-metavariable: $REQ
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              require($REQ, ...)
+          - focus-metavariable: $REQ
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  if($VALIDATION){
+                  ...
+                  require($REQ, ...) 
+                  ...
+                  }
+              - pattern: |
+                  $A = $VALIDATION
+                  ...
+                  if($A){
+                  ...
+                  require($REQ, ...)
+                  ...
+                  }
+          - metavariable-pattern:
+              metavariable: $VALIDATION
+              pattern-either:
+                - pattern: |
+                    $AL.includes(...)
+                - pattern: |
+                    $AL.indexOf(...) !== -1
+                - pattern: |
+                    $AL.find(...) !== undefined
+                - pattern: |
+                    $ALS.has(...)
+    message: Improper neutralization of directives in dynamically evaluated code ('Eval Injection')
+    severity: ERROR
+    languages:
+      - javascript
+    metadata:
+      cwe: CWE-95
+      shortDescription: Improper neutralization of directives in dynamically evaluated code ('Eval Injection')
+      category: security
+      owasp:
+        - A1:2017-Injection
+        - A03:2021-Injection
+        - A05:2025-Injection
+      security-severity: CRITICAL

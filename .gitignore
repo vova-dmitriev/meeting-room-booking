@@ -1,0 +1,23 @@
+node_modules
+.next
+out
+coverage
+storybook-static
+playwright-report
+test-results
+.superpowers
+.env*
+!.env.example
+*.tsbuildinfo
+
+# Local planning documents
+docs/plans/
+docs/specs/
+
+.DS_Store
+
+# Local CodeGraph index
+/.codegraph/
+
+# Tool diagnostics
+*.log

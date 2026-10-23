@@ -1,0 +1,79 @@
+rules:
+  - id: javascript_eval_rule-eval-with-expression
+    languages:
+      - javascript
+      - typescript
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  eval($OBJ)
+              - pattern-not: |
+                  eval("...")
+          - patterns:
+              - pattern: |
+                  $A.eval($OBJ)
+              - pattern-not: |
+                  $A.eval("...")
+          - patterns:
+              - pattern: |
+                  (..., eval)($OBJ)
+              - pattern-not: |
+                  (..., eval)("...")
+          - patterns:
+              - pattern: |
+                  $ALIAS = eval;
+                  ...
+                  $ALIAS($OBJ)
+              - pattern-not: |
+                  $ALIAS = eval;
+                  ...
+                  $ALIAS("...")
+          - pattern: |
+              new Function(..., "..." + $OBJ + "...")
+          - pattern: |
+              $BODY = "..." + $OBJ + "..."
+              ...
+              new Function(..., $BODY)
+          - pattern: |
+              new Function(..., `...${...}...`)
+          - pattern: |
+              $BODY = `...${...}...`
+              ...
+              new Function(..., $BODY)
+          - pattern: |
+              Function(..., "..." + $OBJ + "...")
+          - pattern: |
+              $BODY = "..." + $OBJ + "..."
+              ...
+              Function(..., $BODY)
+          - pattern: |
+              $BODY = `...${...}...`
+              ...
+              Function(..., $BODY)
+          - pattern: |
+              Function(..., `...${...}...`)
+          - pattern: |
+              setTimeout("..." + $OBJ + "...", ...)
+          - pattern: |
+              setTimeout(`...${...}...`, ...)
+          - pattern: |
+              setInterval("..." + $OBJ + "...", ...)
+          - pattern: |
+              setInterval(`...${...}...`, ...)
+      - pattern-not: |
+          setTimeout("...", ...)
+      - pattern-not: |
+          setInterval("...", ...)
+    severity: WARNING
+    message: Improper neutralization of directives in dynamically evaluated code ('Eval Injection')
+    metadata:
+      cwe: CWE-95
+      shortDescription: Improper neutralization of directives in dynamically evaluated code ('Eval Injection')
+      category: security
+      owasp:
+        - A1:2017-Injection
+        - A03:2021-Injection
+        - A05:2025-Injection
+      source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-eval-with-expression.js
+      security-severity: High

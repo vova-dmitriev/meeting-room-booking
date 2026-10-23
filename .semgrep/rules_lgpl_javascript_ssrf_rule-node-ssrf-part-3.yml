@@ -1,0 +1,96 @@
+rules:
+  - id: rules_lgpl_javascript_ssrf_rule-node-ssrf-part-3
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - focus-metavariable: $REQ
+          - pattern: function ($REQ, $RES, ...) {...}
+      - patterns:
+          - focus-metavariable: $REQ
+          - pattern: function $FUNC($REQ, $RES, ...) {...}
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  if($VALIDATION){
+                  ...
+                  }
+              - pattern: |
+                  $A = $VALIDATION
+                  ...
+                  if($A){
+                  ...
+                  }
+          - metavariable-pattern:
+              metavariable: $VALIDATION
+              pattern-either:
+                - pattern: |
+                    $AL.includes(...)
+                - pattern: |
+                    $AL.indexOf(...) !== -1
+                - pattern: |
+                    $AL.find(...) !== undefined
+                - pattern: |
+                    $ALS.has(...)
+    pattern-sinks:
+      - patterns:
+          - focus-metavariable: $REQ
+          - pattern-either:
+              - pattern-inside: |
+                  $BENT = require('bent');
+                  ...
+                  $MTD = $BENT(...)
+              - pattern-inside: |
+                  import $BENT from 'bent';
+                  ...
+                  $MTD = $BENT(...)
+          - pattern: $MTD($REQ, ...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $BENT = require('bent');
+                  ...
+                  $GETBENT = $BENT('$PKG')
+                  ...
+              - pattern-inside: |
+                  import $BENT from 'bent';
+                  ...
+                  $GETBENT = $BENT('$PKG')
+                  ...
+          - pattern: $GETBENT(...)
+          - metavariable-regex:
+              metavariable: $PKG
+              regex: ^(json|buffer)$
+      - patterns:
+          - focus-metavariable: $REQ
+          - pattern-either:
+              - pattern-inside: |
+                  import $GOT from 'got';
+                  ...
+          - pattern: $GOT.$VERB($REQ, ...)
+          - metavariable-regex:
+              metavariable: $VERB
+              regex: ^(get|put|post|patch|delete|head)$
+      - patterns:
+          - focus-metavariable: $URL
+          - pattern-either:
+              - pattern-inside: |
+                  $REQUEST = require('request');
+                  ...
+              - pattern-inside: |
+                  import $REQUEST from 'request';
+                  ...
+          - pattern: $REQUEST($URL, ...)
+    message: Server-side request forgery (SSRF)
+    languages:
+      - javascript
+    severity: ERROR
+    metadata:
+      owasp:
+        - A1:2017-Injection
+        - A10:2021-Server-Side Request Forgery
+        - A01:2025-Broken Access Control
+      cwe: CWE-918
+      shortDescription: Server-side request forgery (SSRF)
+      security-severity: HIGH
+      category: security

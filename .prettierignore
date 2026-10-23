@@ -1,0 +1,13 @@
+node_modules
+.next
+next-env.d.ts
+storybook-static
+coverage
+playwright-report
+test-results
+.superpowers
+package-lock.json
+public/mockServiceWorker.js
+
+docs/plans/
+docs/specs/

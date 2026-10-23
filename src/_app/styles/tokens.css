@@ -1,0 +1,83 @@
+@theme inline {
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-background: var(--panel);
+  --color-foreground: var(--ink);
+  --color-secondary: var(--subtle);
+  --color-secondary-foreground: var(--ink);
+  --color-muted-foreground: var(--muted);
+  --color-destructive: var(--danger);
+  --color-input: var(--control-border);
+  --color-border: var(--line);
+  --color-ring: var(--accent);
+  --color-accent-foreground: var(--on-accent);
+
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-control-border: var(--control-border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-soft: var(--soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-subtle: var(--subtle);
+  --color-room: var(--room);
+  --color-room-line: var(--room-line);
+}
+:root,
+[data-theme="light"] {
+  --canvas: #f6f7f4;
+  --panel: #ffffff;
+  --ink: #202b27;
+  --muted: #5c6860;
+  --line: #e6eae4;
+  --control-border: #7b887e;
+  --accent: #28624b;
+  --accent-hover: #1e4e3b;
+  --soft: #eaf2e9;
+  --on-accent: #ffffff;
+  --danger: #a63c3c;
+  --danger-soft: #fbefee;
+  --warning: #856414;
+  --warning-soft: #f8f3e5;
+  --sidebar: #202e28;
+  --sidebar-text: #f1f5ef;
+  --sidebar-muted: #a9b6ac;
+  --sidebar-active: #38483e;
+  --subtle: #f0f2ee;
+  --room: #dfe7d5;
+  --room-line: #a7b897;
+}
+[data-theme="dark"] {
+  --canvas: #161e19;
+  --panel: #202a23;
+  --ink: #eef2e9;
+  --muted: #b1bcb0;
+  --line: #354137;
+  --control-border: #9aaa9a;
+  --accent: #acd3a5;
+  --accent-hover: #c5e4be;
+  --soft: #2b3e2e;
+  --on-accent: #19301f;
+  --danger: #f4aaaa;
+  --danger-soft: #402729;
+  --warning: #e7ce8c;
+  --warning-soft: #3d3625;
+  --sidebar: #111a14;
+  --sidebar-text: #f1f5ef;
+  --sidebar-muted: #adbaac;
+  --sidebar-active: #2a3a2d;
+  --subtle: #28332b;
+  --room: #34462f;
+  --room-line: #7c9371;
+}

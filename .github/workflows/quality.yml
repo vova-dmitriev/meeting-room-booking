@@ -1,0 +1,54 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  complete-snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CI: "1"
+      VALIDATION_CONCURRENCY: "2"
+      NEXT_TELEMETRY_DISABLED: "1"
+      STORYBOOK_DISABLE_TELEMETRY: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up the shared Node baseline
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install locked browser tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install the selected Chrome channel and system dependencies
+        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+      - name: Install checksum-verified Gitleaks 8.30.1
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: |
+          archive=gitleaks_8.30.1_linux_x64.tar.gz
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/$archive" --output "$archive"
+          printf '%s  %s\n' \
+            '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' "$archive" | sha256sum --check -
+          tar -xzf "$archive" gitleaks
+          sudo install -m 755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Prepare the same digest-pinned Semgrep image
+        run: |
+          docker version
+          docker pull semgrep/semgrep@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
+      - name: Run the complete local and pre-commit validation graph
+        run: npm run check:working-copy
