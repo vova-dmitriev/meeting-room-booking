@@ -28,6 +28,8 @@ test("list errors announce the failure and offer a keyboard-accessible retry", a
   await expect(page.getByTestId(FeedbackTestId.Root)).toHaveAttribute("role", "alert")
   await expect(page.getByTestId(FeedbackTestId.Root)).toContainText(t("booking.feedback.loadError.title"))
   await page.getByTestId(DialogTestId.Close).click()
+  await expect(page.getByTestId(DialogTestId.Root)).toHaveCount(0)
+  await expect(page.getByTestId(SchedulerTestId.Create)).toBeFocused()
   await expect(page.getByTestId(SchedulerTestId.Retry)).toHaveAccessibleName(t("common.retry"))
   await page.getByTestId(SchedulerTestId.Retry).focus()
   await expect(page.getByTestId(SchedulerTestId.Retry)).toBeFocused()
