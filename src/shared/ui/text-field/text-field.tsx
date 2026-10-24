@@ -3,8 +3,9 @@ import { cn } from "@/shared/lib/cn"
 import type { TextFieldProps } from "./text-field.types"
 import { TextFieldTestId } from "./test-ids"
 
-export function TextField({ label, error, hint, id, className, ...props }: TextFieldProps) {
-  const description = error || hint
+export function TextField({ label, error, errorId, hint, id, className, ...props }: TextFieldProps) {
+  const description = error && errorId ? undefined : error || hint
+  const descriptionId = error && errorId ? errorId : description ? `${id}-description` : undefined
 
   return (
     <div data-testid={TextFieldTestId.Root} className={cn("flex flex-col gap-2", className)}>
@@ -15,7 +16,7 @@ export function TextField({ label, error, hint, id, className, ...props }: TextF
         id={id}
         data-testid={TextFieldTestId.Input}
         aria-invalid={Boolean(error) || undefined}
-        aria-describedby={description ? `${id}-description` : undefined}
+        aria-describedby={descriptionId}
         className={cn(
           cn(
             "h-11 min-w-0 w-full rounded-xl border bg-panel px-3.5 text-sm text-ink",

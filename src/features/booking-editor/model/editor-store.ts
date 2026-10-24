@@ -1,5 +1,5 @@
 import { createStore } from "zustand/vanilla"
-import type { BookingError } from "@/entities/booking"
+import { BookingError, BookingDraftDefaults, BookingField } from "@/entities/booking"
 import { PreviewState } from "@/shared/config"
 import type { BookingDraft, BookingFormProps } from "./types"
 
@@ -18,10 +18,10 @@ export interface EditorState {
 
 export type EditorStore = ReturnType<typeof createEditorStore>
 
-export function createEditorStore({ date, editing, scenario }: BookingFormProps) {
+export function createEditorStore({ date, editing, scenario, interval }: BookingFormProps) {
   return createStore<EditorState>()((set) => ({
-    draft: { date, start: "10:00", end: "11:00", title: "", ...editing },
-    error: scenario === PreviewState.Invalid ? "booking.validation.duration" : null,
+    draft: { date, ...BookingDraftDefaults, ...interval, ...editing },
+    error: scenario === PreviewState.Invalid ? BookingError.Duration : null,
     conflict: false,
     refreshFailed: false,
     success: false,
@@ -30,8 +30,8 @@ export function createEditorStore({ date, editing, scenario }: BookingFormProps)
         draft: { ...current.draft, [field]: value },
         error: null,
         success: false,
-        conflict: field === "title" ? current.conflict : false,
-        refreshFailed: field === "title" ? current.refreshFailed : false,
+        conflict: field === BookingField.Title ? current.conflict : false,
+        refreshFailed: field === BookingField.Title ? current.refreshFailed : false,
       })),
     setError: (error) => set({ error }),
     setConflict: (conflict) => set({ conflict }),

@@ -1,46 +1,169 @@
-# Meeting room booking
+# Бронирование переговорной
 
-Interactive frontend prototype with Russian localization, a shadcn UI kit and a replaceable mock API. No hosted backend is required.
+Приложение для просмотра расписания и бронирования переговорной «Атлас». Интерфейс на русском языке. Запросы обрабатывает имитация HTTP API на MSW в браузере.
 
-## Run
+- [Открыть приложение](https://meeting-room-booking-tan.vercel.app/)
+- [Открыть Storybook](https://meeting-room-booking-storybook.vercel.app/)
 
-Use Node.js 24 from `.nvmrc` and npm.
+## Что реализовано
+
+Расписание дня показывает занятые и свободные интервалы одним хронологическим списком. Дату можно ввести в поле или переключить кнопками предыдущего и следующего дня. Полностью свободный рабочий день занимает один интервал с 09:00 до 18:00 с подписью «Весь день свободен».
+
+Доступный свободный интервал или кнопка создания открывают модальную форму с датой, временем начала, временем окончания и необязательным названием встречи. Фокус сразу переходит в диалог. Нажатие на предстоящую встречу открывает её редактирование. После успешного сохранения диалог закрывается, расписание обновляется.
+
+Дата в форме редактируется. При её изменении форма сохраняет черновик, загружает бронирования выбранного дня и проверяет пересечения на этой дате. Удаление доступно внутри редактора встречи: отдельный диалог показывает данные встречи и предлагает подтвердить удаление или отменить его.
+
+| Требование                | Поведение приложения                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Рабочее время             | Бронирование целиком помещается в интервал с 09:00 до 18:00.                                                                       |
+| Порядок времени           | Начало строго раньше окончания.                                                                                                    |
+| Длительность              | От 30 до 120 минут включительно.                                                                                                   |
+| Шаг времени               | Начало и окончание кратны 10 минутам.                                                                                              |
+| Пересечения               | Приложение отклоняет пересекающиеся бронирования на одну дату. Соседние интервалы, например 10:00-11:00 и 11:00-12:00, разрешены.  |
+| Прошедшее время           | Прошедшая дата доступна для просмотра. Создание и редактирование недоступны; форма ограничивает время с учётом часов демо.         |
+| Редактирование            | Проверка пересечений исключает бронирование, которое пользователь редактирует.                                                     |
+| Конкурентное бронирование | После ответа API `409` приложение повторно запрашивает расписание, показывает сообщение на русском и сохраняет введённые значения. |
+| Устаревшие ошибки         | Изменение времени или выбранной даты сбрасывает прежние ошибки. Изменение только названия сохраняет сообщение о конфликте `409`.   |
+
+Клиент и MSW проверяют интервалы одним валидатором. Для загрузки, ошибки запроса и отправки формы есть отдельные состояния. Пустое расписание будущего дня показывает свободный рабочий интервал. После ошибки загрузки пользователь может повторить запрос.
+
+Если бронирование сохранено, а обновление расписания не удалось, повтор запрашивает расписание без повторного сохранения. Ответ на запрос из закрытого редактора обновляет расписание и сохраняет новый открытый черновик. При сбое запуска демо приложение показывает сообщение и кнопку повторного запуска.
+
+Интерфейс поддерживает светлую и тёмную темы с синим акцентом, мобильную, планшетную и настольную ширину. При первом открытии тема соответствует настройке браузера; пользователь может переключить её вручную. Явно заданная тема истории Storybook имеет приоритет над системной. У полей есть подписи, у элементов управления есть видимый фокус и управление с клавиатуры.
+
+## Ограничения демо
+
+MSW хранит синтетические записи в памяти. Перезагрузка страницы сбрасывает изменения. Часы демо зафиксированы на `2026-10-23 08:30` по локальному времени; приложение проверяет прошедшие интервалы относительно этой даты, а не текущего времени устройства. Отдельные истории Storybook переопределяют часы для проверки таких случаев.
+
+Приложение не подключено к реальному серверу бронирований.
+
+## Локальный запуск
+
+Используйте Node.js 24 из `.nvmrc` и npm.
 
 ```sh
 npm ci
 npx playwright install chrome
 npm run security:install-hooks
+npm run dev
+```
+
+Приложение: <http://127.0.0.1:3000>. MSW запускается до монтирования расписания.
+
+Storybook запускается отдельно:
+
+```sh
 npm run storybook
 ```
 
-Open <http://127.0.0.1:6006/?path=/story/preview-booking-workspace--default>. UI Kit contains reusable primitives; Business rules contains individual validation and recovery scenarios. The preview uses synthetic records and a fixed local clock on 23 October 2026, with explicit per-story overrides for past-time cases.
+Откройте [рабочую область в Storybook](http://127.0.0.1:6006/?path=/story/preview-booking-workspace--default). В разделе UI Kit находятся общие компоненты, в Business rules находятся сценарии валидации и восстановления после ошибок.
 
-Run the Next.js preview separately with `npm run dev`. MSW starts before the booking workspace mounts. Data lives in memory and resets when the mock handlers restart; the prototype does not persist bookings between reloads.
+Для полного набора проверок нужны Git, Gitleaks 8 и работающий Docker. Требования к инструментам и поведение сканеров описаны в [SECURITY.md](SECURITY.md).
 
-## Structure
+## Сборка и публикация
 
-Thin Next.js routes in `app` delegate to FSD layers in `src`: `_app`, `_pages`, `widgets`, `features`, `entities`, `shared`. Pages compose focused components. Shared UI wraps shadcn primitives and merges class overrides through `cn` (`clsx` and `tailwind-merge`).
+Локальная сборка и запуск готового Next.js-приложения:
 
-`shared/api` exposes one typed native-fetch client. Entity APIs encapsulate endpoints; TanStack Query owns server state. MSW intercepts the same transport used by the application. Replacing the mock with a real API requires configuring that transport and matching its contract, without embedding requests in UI.
+```sh
+npm run build
+npm run start
+```
 
-Zustand stores own local drafts and selection. Each mounted workspace/editor has an isolated store. Typed scoped adapters accept a selector; named selector/action hooks live in each model's `selectors.ts`. Actions are defined inside the store creator.
+Приложение открывается по адресу <http://127.0.0.1:3000>.
 
-Translations are grouped under `common`, `navigation`, `workspace`, `room`, `booking`, `calendar` and `demo`. Typed i18next keys cover components, stories and demo records. Locale validation compares recursive keys and interpolation placeholders against Russian.
+Для размещения используются два проекта Vercel: Next.js-приложение с командой сборки `next build` и отдельный статический Storybook. Команда `npm run build-storybook` собирает Storybook в `storybook-static/`, включая конфигурацию его публикации. HTTP-запросы приложения обрабатывает MSW в браузере.
 
-## Checks
+В GitHub Actions настроен следующий порядок:
+
+1. Запрос на слияние должен пройти обязательную проверку `complete-snapshot` процесса `Quality`.
+2. CI определяет изменения относительно базового коммита PR или предыдущего коммита `main`. Unit и Storybook запускаются полностью; Playwright выбирает связанные e2e-файлы через `--only-changed`.
+3. Для README, документации и unit-тестов e2e не запускаются. Общие стили, маршруты, конфигурация браузерного окружения и зависимости требуют полного e2e-прогона. Если связи нельзя определить надёжно или базовый коммит недоступен, выполняется весь набор.
+4. После успешных проверок изменения, затрагивающие браузерные сценарии, публикуются в Vercel через окружение `production`. Затем Playwright проверяет основные действия на обоих сайтах и запускает выбранные сценарии на опубликованном Storybook. Все e2e сохраняют мобильную, планшетную и настольную ширину.
+
+Выбор e2e учитывает импорты тестов и вспомогательных файлов. Модули, которые приложение загружает через страницу браузера, могут отсутствовать в этом графе: для нескольких изменённых runtime-файлов или исходника без связанных тестов используется полный прогон. Пустой набор разрешён только как явный результат планировщика; ошибки выбора, пропущенные выбранные файлы и нестабильные тесты блокируют CI. Обязательная проверка `complete-snapshot` публикуется и для PR с одной документацией.
+
+Ветка `main` требует запрос на слияние. Защита действует и для администраторов; принудительная отправка и удаление ветки запрещены. Локальный хук pre-commit блокирует прямой коммит в `main`.
+
+Проверки опубликованных сайтов можно запустить отдельно:
+
+```sh
+npm run test:deployment
+npm run test:staging
+```
+
+Обе команды требуют `DEPLOYMENT_URL` с адресом приложения и `STORYBOOK_DEPLOYMENT_URL` с адресом Storybook. `test:deployment` проверяет доступность и основные действия на обоих сайтах, `test:staging` выполняет все бизнес-сценарии на опубликованном Storybook. Эти проверки запускаются отдельно от локального pre-commit и не входят в `check:working-copy`.
+
+## Стек и структура
+
+Приложение использует Next.js App Router, React, TypeScript, Tailwind CSS, shadcn UI, TanStack Query, Zustand, i18next и MSW. Storybook показывает компоненты и состояния интерфейса; Vitest и Playwright проверяют поведение.
+
+Маршруты в `app/` передают рендеринг FSD-слоям в `src/`:
+
+```text
+_app → _pages → widgets → features → entities → shared
+```
+
+Импорты направлены в нижние слои через публичные API слайсов. Компоненты отображают интерфейс, а хуки в `model` управляют запросами, состоянием и взаимодействиями. Общие компоненты в `shared/ui` оборачивают примитивы shadcn; `cn` объединяет классы через `clsx` и `tailwind-merge`. Цвета тем заданы семантическими токенами в `src/_app/styles/tokens.css`.
+
+`shared/api` содержит один типизированный клиент на нативном `fetch`. API-модуль бронирований использует этот клиент, TanStack Query хранит серверное состояние. Мутации не повторяются автоматически. MSW перехватывает тот же HTTP-транспорт, который использует приложение.
+
+Zustand хранит черновики формы и выбранную дату. Каждая рабочая область и редактор получают отдельное хранилище. Типизированные хуки принимают селектор; именованные хуки для чтения состояния и вызова действий находятся в `model/selectors.ts`.
+
+Сейчас приложение содержит только русский словарь. Вложенные ресурсы i18next объединяют тексты интерфейса, историй и демо-записей. TypeScript проверяет ключи переводов, а `check:i18n` проверяет рекурсивные ключи и параметры интерполяции относительно русского словаря при добавлении других локалей.
+
+## Интерфейс HTTP
+
+По умолчанию клиент использует базовый путь `/api`. MSW обрабатывает следующие запросы:
+
+| Метод и путь                        | Действие                                                |
+| ----------------------------------- | ------------------------------------------------------- |
+| `GET /api/bookings?date=YYYY-MM-DD` | Получить бронирования за день в порядке времени начала. |
+| `POST /api/bookings`                | Создать бронирование.                                   |
+| `PATCH /api/bookings/:id`           | Изменить бронирование.                                  |
+| `DELETE /api/bookings/:id`          | Удалить бронирование.                                   |
+
+Данные формы содержат `date`, `start`, `end` и необязательный `title`. При пересечении API возвращает `409`, при другой ошибке валидации возвращает `400`. Для подключения реального сервиса нужно заменить запуск MSW и настроить `NEXT_PUBLIC_API_BASE_URL`, сохранив контракт запросов и ответов.
+
+## Проверки
+
+Полная проверка рабочей копии:
+
+```sh
+npm run check:working-copy
+```
+
+Команда создаёт отдельный снимок исходников и проверяет его: сканирование Gitleaks, Semgrep в Docker, локали, типы, ESLint, границы FSD, структуру файлов, React Doctor, форматирование, неиспользуемый код, тесты и обе сборки. Набор включает браузерные проверки Storybook и Playwright. По умолчанию одновременно работают не более двух независимых веток, в каждой используется один процесс для тестов и сборки.
+
+Хук pre-commit проверяет полный снимок индекса Git и всегда запускает все e2e; переменная выбора CI не может сократить локальную проверку коммита. GitHub Actions запускает те же команды из общего `validationCommands` в отдельных jobs: правила кода, безопасность, unit/integration, Storybook, две сборки и выбранные e2e. Независимые jobs работают на отдельных runners; сборки передают артефакты e2e внутри того же запуска. Итоговый `complete-snapshot` проверяет результаты всех jobs и блокирует слияние при ошибке, отмене или неожиданном пропуске. Проверяющие команды не добавляют файлы в индекс и не создают коммиты.
+
+Отдельные команды:
 
 ```sh
 npm test
 npm run test-storybook
 npm run test:e2e
 npm run check:i18n
+npm run typecheck
 npm run build
 npm run build-storybook
-npm run check:working-copy
 ```
 
-Storybook browser/accessibility tests and Playwright E2E run on mobile, tablet and desktop. Stories use interactions to demonstrate states; assertions live in tests. Unit tests cover interval validation, UI-store transitions, time availability and tooling behavior; integration tests exercise the real HTTP client with MSW.
+Модульные тесты лежат рядом с проверяемыми модулями в папках `__spec__`; сценарные данные вынесены в именованные константы и соседние `*.fixtures.ts`. ESLint запрещает магические бизнес-значения в коде и строковые данные в вызовах ввода и проверках текста. API-ошибки предоставляют смысловые проверки, например `isConflict`, вместо сравнения HTTP-статусов в UI.
 
-`check:working-copy` validates an isolated source snapshot. The installed pre-commit hook validates the complete staged snapshot, including build, tests, lint, i18n, security and React Doctor. It neither stages files nor creates commits. Checks use bounded parallel branches; dependent builds and browser tests run in order. GitHub Actions calls the same snapshot command. Gitleaks and a running Docker daemon are required for security scans; see [SECURITY.md](SECURITY.md).
+Модульные тесты проверяют правила интервалов, построение расписания дня, доступность времени, переходы состояния интерфейса и инструменты проверки проекта. Интеграционные тесты проверяют HTTP-клиент и API бронирований с MSW. Storybook запускает браузерные проверки и проверки доступности; Playwright проверяет пользовательские сценарии. Оба набора браузерных тестов работают на мобильной, планшетной и настольной ширине.
 
-Planning documents in `docs/plans` and `docs/specs`, reports, generated outputs and CodeGraph databases stay local. The repository uses CodeGraph before code exploration and refreshes its index after changes. The reusable setup skill is installed locally as `nextjs-fsd-quality-kit`.
+`play`-функции историй только переводят интерфейс в нужное состояние. Утверждения находятся в test/spec-файлах. Тесты обращаются к элементам через импортированные константы `data-testid`.
+
+Истории и их вспомогательные сценарии находятся в папках `stories/` рядом с компонентами. ESLint проверяет размещение stories и unit-тестов, а также запрещает рабочему коду импортировать файлы из `stories/`. Эти правила выполняются в обязательном шаге `lint` общего pre-commit.
+
+Покрытие кода приложения можно измерить отдельно для unit/integration и Storybook:
+
+```sh
+npm run test:coverage
+open coverage/unit/index.html
+
+npm run test:coverage:storybook
+open coverage/storybook/index.html
+```
+
+Отчёты показывают покрытие строк, веток и функций, включая файлы приложения, которые тесты не исполняли. В HTML можно открыть файл и увидеть непокрытые строки. Код историй, тесты, объявления типов и test ID исключены из метрики. Результаты unit/integration и Storybook хранятся отдельно; E2E в эти проценты не входят. Команда `open` открывает отчёт на macOS; на других системах откройте HTML-файл в браузере.

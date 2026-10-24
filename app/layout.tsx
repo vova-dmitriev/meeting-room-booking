@@ -1,15 +1,17 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
-import { DemoProviders } from "@/_app/composition"
+import { AppBootstrap } from "@/_app/composition"
+import { ru } from "@/shared/lib/i18n/dictionaries/ru"
+import { DocumentTestId } from "@/shared/config/test-ids"
 import "@/_app/styles/globals.css"
 
-export const metadata: Metadata = { title: "Gather: Meeting rooms", description: "Meeting room booking UI kit preview" }
+export const metadata: Metadata = { title: ru.metadata.title, description: ru.metadata.description }
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" data-testid={DocumentTestId.Root}>
       <body>
-        <DemoProviders>{children}</DemoProviders>
+        <AppBootstrap>{children}</AppBootstrap>
       </body>
     </html>
   )

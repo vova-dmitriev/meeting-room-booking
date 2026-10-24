@@ -11,3 +11,13 @@ export const useStartEditing = () => useSchedulerStore((state) => state.startEdi
 export const useCancelEditing = () => useSchedulerStore((state) => state.cancelEditing)
 
 export const useBookingDeleted = () => useSchedulerStore((state) => state.bookingDeleted)
+
+export const useEditorOpen = () => useSchedulerStore((state) => state.editorOpen)
+
+export const useInitialInterval = () => useSchedulerStore((state) => state.interval)
+
+export const useCreateBooking = () => useSchedulerStore((state) => state.createBooking)
+
+export const useEditorSession = () => useSchedulerStore((state) => state.editorSession)
+
+export const useCompleteEditor = () => useSchedulerStore((state) => state.completeEditor)

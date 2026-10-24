@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test"
 import { BookingTestId } from "@/entities/booking"
 import { EditorTestId } from "@/features/booking-editor"
 import { assertFormAccessibility, expectCreatedInterval, expectFieldError, openRule } from "./workspace"
+import { BookingIntervals } from "../booking.fixtures"
 
 const outsideWorkday = [
   { story: "start-before-workday", field: EditorTestId.Start, boundary: "rangeUnderflow" },
@@ -40,13 +41,13 @@ for (const { story, error } of invalidDurations) {
 }
 
 test("accepts exactly 30 minutes starting at workday opening", async ({ page }) => {
-  await openRule(page, "booking-time-rules--minimum-duration")
-  await expectCreatedInterval(page, "09:00", "09:30", 1)
+  await openRule(page, "booking-time-rules--minimum-duration", "closed")
+  await expectCreatedInterval(page, BookingIntervals.Minimum.start, BookingIntervals.Minimum.end, 1)
   await assertFormAccessibility(page)
 })
 
 test("accepts exactly 120 minutes ending at workday closing", async ({ page }) => {
-  await openRule(page, "booking-time-rules--maximum-duration")
-  await expectCreatedInterval(page, "16:00", "18:00", 1)
+  await openRule(page, "booking-time-rules--maximum-duration", "closed")
+  await expectCreatedInterval(page, BookingIntervals.Maximum.start, BookingIntervals.Maximum.end, 1)
   await assertFormAccessibility(page)
 })

@@ -11,10 +11,11 @@ import "../src/_app/styles/globals.css"
 
 clock.now = () => new Date(DemoNow)
 
-apiClient.baseUrl = "http://api.storybook.local"
+apiClient.baseUrl = "https://api.storybook.local"
 
 const loadMsw = mswLoader(async () => {
   await worker.start({
+    serviceWorker: { url: new URL("mockServiceWorker.js", document.baseURI).pathname },
     onUnhandledRequest(request, print) {
       if (new URL(request.url).hostname === "api.storybook.local") print.error()
     },
@@ -31,7 +32,7 @@ const preview: Preview = {
       context.parameters.msw = {
         handlers: [
           ...(context.parameters.mockHandlers ?? []),
-          ...createHandlers("http://api.storybook.local", context.parameters.scenario ?? PreviewState.Default),
+          ...createHandlers("https://api.storybook.local", context.parameters.scenario ?? PreviewState.Default),
         ],
       }
 

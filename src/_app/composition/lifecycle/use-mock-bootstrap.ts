@@ -1,29 +1,38 @@
 import { clock } from "@/shared/lib/clock"
 import { DemoNow } from "@/entities/booking"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { BootstrapPhase } from "./bootstrap-values"
+import { startMockApi } from "./start-mock-api"
 
 export function useMockBootstrap() {
-  const [ready, setReady] = useState(false)
+  const [phase, setPhase] = useState<BootstrapPhase>(BootstrapPhase.Loading)
+  const [attempt, setAttempt] = useState(0)
+
+  const retry = useCallback(() => {
+    setPhase(BootstrapPhase.Loading)
+    setAttempt((current) => current + 1)
+  }, [])
 
   useEffect(() => {
     let active = true
 
     clock.now = () => new Date(DemoNow)
 
-    void Promise.all([import("../../api/mock/browser"), import("../../api/mock/handlers")])
-      .then(async ([{ worker }, { createHandlers }]) => {
-        worker.use(...createHandlers(`${window.location.origin}/api`))
-        await worker.start({ onUnhandledRequest: "bypass" })
-        if (active) setReady(true)
+    void startMockApi()
+      .then(() => {
+        if (active) setPhase(BootstrapPhase.Ready)
       })
       .catch((error: unknown) => {
-        console.error("Mock API bootstrap failed", error)
+        if (active) {
+          console.error("Mock API bootstrap failed", error)
+          setPhase(BootstrapPhase.Error)
+        }
       })
 
     return () => {
       active = false
     }
-  }, [])
+  }, [attempt])
 
-  return ready
+  return { phase, retry }
 }

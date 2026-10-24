@@ -1,18 +1,21 @@
 import { expect, test } from "@playwright/test"
 import { BookingTestId } from "@/entities/booking"
 import { EditorTestId } from "@/features/booking-editor"
+import { SchedulerTestId } from "@/widgets/booking-scheduler"
 import { fillBooking, openWorkspace } from "../bookings/workspace"
 import { openRule, t } from "./workspace"
+import { BookingIntervals } from "../booking.fixtures"
 
 test("time controls use a ten-minute grid and application validation", async ({ page }) => {
   await openWorkspace(page)
+  await page.getByTestId(SchedulerTestId.Create).click()
   await expect(page.getByTestId(EditorTestId.Form)).toHaveAttribute("novalidate", "")
 
   for (const field of [EditorTestId.Start, EditorTestId.End]) {
     await expect(page.getByTestId(field)).toHaveAttribute("step", "600")
   }
 
-  await fillBooking(page, t("demo.meetings.planning"), "10:10", "10:50")
+  await fillBooking(page, t("demo.meetings.planning"), BookingIntervals.Grid.start, BookingIntervals.Grid.end)
   await page.getByTestId(EditorTestId.Submit).click()
   await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(4)
 })

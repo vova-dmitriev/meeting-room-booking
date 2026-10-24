@@ -1,18 +1,18 @@
 import { BookingError, BookingRule } from "../config/booking-values"
 import type { BookingInput, ValidationContext } from "../model/types"
 import { parseTime } from "./time"
+import { parseCalendarDate } from "@/shared/lib/date"
 
 export function overlaps(a: BookingInput, b: BookingInput): boolean {
   return a.date === b.date && a.start < b.end && b.start < a.end
 }
 
 export function validateBooking(input: BookingInput, { bookings, now, excludeId }: ValidationContext): BookingError[] {
-  const date = new Date(`${input.date}T12:00:00`)
+  const date = parseCalendarDate(input.date)
   const start = parseTime(input.start)
   const end = parseTime(input.end)
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || Number.isNaN(date.getTime()) || date.getDate() !== Number(input.date.slice(8)))
-    return [BookingError.Date]
+  if (!date) return [BookingError.Date]
   if (start === null || end === null || start < BookingRule.Start || end > BookingRule.End) return [BookingError.Time]
   if (start >= end) return [BookingError.Order]
   if (end - start < BookingRule.MinDuration || end - start > BookingRule.MaxDuration) return [BookingError.Duration]

@@ -7,9 +7,11 @@ const layers = new Set(["_app", "_pages", "widgets", "features", "entities", "sh
 const generated = new Set([
   "node_modules",
   ".next",
+  "coverage",
   "storybook-static",
   ".git",
   ".codegraph",
+  ".vercel",
   ".superpowers",
   "public",
   "playwright-report",
@@ -23,13 +25,15 @@ function visit(directory) {
     (entry) => entry.isFile() && /\.(ts|tsx|mjs|css)$/.test(entry.name) && entry.name !== "index.ts" && !entry.name.endsWith(".d.ts"),
   )
 
-  if (directory.startsWith("src/") && authored.length > 6) issues.push(`${directory}: more than 6 non-index files`)
+  if (directory.startsWith("src/") && !directory.split("/").includes("__spec__") && authored.length > 6)
+    issues.push(`${directory}: more than 6 non-index files`)
 
   for (const entry of entries) {
     const path = join(directory, entry.name)
 
     if (entry.isDirectory()) {
       if (generated.has(entry.name)) continue
+      if (["tests/unit", "tests/tooling"].includes(path)) issues.push(`${path}: colocate unit tests beside their subject in __spec__`)
       if (directory === "src" && !layers.has(entry.name)) issues.push(`${path}: unsupported FSD layer`)
       visit(path)
     } else if (/\.(ts|tsx|mjs|css)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {

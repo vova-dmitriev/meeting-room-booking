@@ -9,6 +9,7 @@ test-results
 .env*
 !.env.example
 *.tsbuildinfo
+.vercel/
 
 # Local planning documents
 docs/plans/

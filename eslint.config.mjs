@@ -11,6 +11,8 @@ import { testIdRules, selectorRules, storyRules, primitiveRules, zustandConsumer
 export default defineConfig([
   globalIgnores([
     ".next/**",
+    ".vercel/**",
+    "coverage/**",
     "node_modules/**",
     "next-env.d.ts",
     "storybook-static/**",
@@ -22,6 +24,11 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypes,
   ...storybook.configs["flat/recommended"],
+  {
+    files: ["**/*.{ts,tsx,mjs}"],
+    plugins: { frontend },
+    rules: { "frontend/file-conventions": "error" },
+  },
   {
     files: ["**/*.{js,jsx,ts,tsx,mjs}"],
     plugins: { "better-tailwindcss": betterTailwindcss },
@@ -47,22 +54,46 @@ export default defineConfig([
     rules: { "frontend/hook-callback-body": "error" },
   },
   {
+    files: ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+    ignores: ["**/__spec__/**"],
+    rules: { "frontend/business-data-constants": "error" },
+  },
+  {
     files: ["src/**/*.tsx", "app/**/*.tsx"],
-    ignores: ["**/*.stories.tsx"],
-    rules: { "frontend/one-component": "error", "frontend/named-props": "error", "no-restricted-syntax": ["error", ...testIdRules] },
+    ignores: ["**/__spec__/**"],
+    rules: { "frontend/root-test-ids": "error" },
+  },
+  {
+    files: ["src/**/*.tsx", "app/**/*.tsx"],
+    ignores: ["**/*.stories.tsx", "**/__spec__/**"],
+    rules: {
+      "frontend/one-component": "error",
+      "frontend/named-props": "error",
+      "no-restricted-syntax": ["error", ...testIdRules],
+    },
   },
   {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["**/*store.ts", "**/*.stories.tsx"],
+    ignores: ["**/*store.ts", "**/*.stories.tsx", "**/__spec__/**"],
     rules: { "no-restricted-syntax": ["error", ...testIdRules, ...zustandConsumerRules] },
   },
   {
     files: ["src/{_app,_pages,widgets,features,entities}/**/*.tsx", "app/**/*.tsx"],
+    ignores: ["**/__spec__/**"],
     rules: { "no-restricted-syntax": ["error", ...testIdRules, ...primitiveRules, ...zustandConsumerRules] },
   },
   {
     files: ["**/*.stories.tsx"],
     rules: { "no-restricted-syntax": ["error", ...testIdRules, ...selectorRules, ...storyRules, ...storyTranslationRules] },
   },
-  { files: ["tests/**/*.{ts,tsx}"], rules: { "no-restricted-syntax": ["error", ...selectorRules] } },
+  {
+    files: ["tests/**/*.{ts,tsx}", "**/__spec__/**/*.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...selectorRules] },
+  },
+  {
+    files: ["tests/{e2e,deployment}/**/*.{ts,tsx}", "src/**/__spec__/**/*.{ts,tsx}"],
+    ignores: ["**/*.fixtures.ts", "**/fixtures.ts", "**/constants.ts"],
+    plugins: { frontend },
+    rules: { "frontend/test-data-constants": "error" },
+  },
 ])
