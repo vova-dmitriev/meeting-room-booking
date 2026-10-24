@@ -37,6 +37,7 @@ export async function expectCreatedInterval(page: Page, start: string, end: stri
   const intervals = await cards.allTextContents()
 
   expect(intervals.some((text) => text.includes(start) && text.includes(end))).toBe(true)
+  await expect(page.getByTestId(EditorTestId.Form)).toHaveCount(0)
   await expectNoHorizontalOverflow(page)
 }
 
