@@ -1,7 +1,5 @@
 export const ru = {
   bootstrap: {
-    loadingTitle: "Запускаем приложение",
-    loadingDescription: "Подключаем демо-данные и готовим расписание.",
     errorTitle: "Не удалось запустить приложение",
     errorDescription: "Проверьте соединение и настройки браузера, затем повторите запуск.",
     retry: "Повторить запуск",
@@ -38,6 +36,10 @@ export const ru = {
     theme: "Переключить тему",
     close: "Закрыть",
     notifications: "Уведомления",
+  },
+  errorBoundary: {
+    title: "Раздел не удалось показать",
+    description: "Данные не пострадали. Повторите попытку, чтобы вернуться к работе.",
   },
   navigation: {
     workspace: "Рабочее пространство",
@@ -80,7 +82,7 @@ export const ru = {
       dateFull: "23 октября 2026",
       label: "UI KIT / 01",
     },
-    note: "Интерактивный прототип · тестовые данные",
+    errorBoundary: { break: "Сломать отрисовку" },
   },
   workspace: {
     greeting: "Пространство для хороших идей.",

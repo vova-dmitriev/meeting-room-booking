@@ -22,3 +22,6 @@ docs/specs/
 
 # Tool diagnostics
 *.log
+
+anti-slop
+.zcode

@@ -6,7 +6,7 @@ import type { BookingSchedulerProps } from "./booking-scheduler.types"
 
 export function BookingScheduler(props: BookingSchedulerProps) {
   return (
-    <SchedulerProvider>
+    <SchedulerProvider syncDateUrl={props.syncDateUrl}>
       <BookingSchedulerContent {...props} />
     </SchedulerProvider>
   )

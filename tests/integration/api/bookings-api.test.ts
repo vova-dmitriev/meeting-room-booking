@@ -65,6 +65,11 @@ describe("Fetch booking API with the application MSW contract", () => {
     expect((await bookingApi.list(DemoDate)).map((booking) => booking.id)).not.toContain(created.id)
   })
 
+  it("rejects removal of an unknown booking with HTTP 404", async () => {
+    await expect(bookingApi.remove("missing")).rejects.toMatchObject({ status: 404 })
+    expect(await bookingApi.list(DemoDate)).toHaveLength(3)
+  })
+
   it("maps invalid booking input to HTTP 400 without changing storage", async () => {
     await expect(bookingApi.create({ ...input, start: "08:00", end: "09:00" })).rejects.toMatchObject({ status: 400 })
     expect(await bookingApi.list(DemoDate)).toHaveLength(3)

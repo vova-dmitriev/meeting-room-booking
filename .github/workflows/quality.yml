@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -146,6 +147,7 @@ jobs:
 
   builds:
     name: Build ${{ matrix.surface }}
+    environment: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'production' || 'validation' }}
     needs: source
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -166,14 +168,28 @@ jobs:
           persist-credentials: false
       - name: Set up locked Node tooling
         uses: ./.github/actions/setup
-      - name: Build the production surface
-        run: node scripts/validation/ci.mjs "$BUILD_COMMAND"
+      - name: Build the production application once
+        if: matrix.surface == 'application'
+        run: node scripts/deployment/build.mjs
         env:
-          BUILD_COMMAND: ${{ matrix.command }}
-      - name: Package all build files, including hidden Next artifacts
-        run: tar -czf "$RUNNER_TEMP/build.tar.gz" "$BUILD_DIRECTORY"
+          VERCEL_TOKEN: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN || '' }}
+          VERCEL_APP_PROJECT_ID: ${{ vars.VERCEL_APP_PROJECT_ID }}
+          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+          VERCEL_TELEMETRY_DISABLED: "1"
+      - name: Build the static Storybook once
+        if: matrix.surface == 'storybook'
+        run: node scripts/validation/ci.mjs build-storybook
+      - name: Package all tested build files without downloaded environment secrets
+        run: |
+          if [ "$SURFACE" = application ] && [ "$RELEASE" = "1" ]; then
+            tar -czf "$RUNNER_TEMP/build.tar.gz" .next .vercel/output .vercel/project.json
+          else
+            tar -czf "$RUNNER_TEMP/build.tar.gz" "$BUILD_DIRECTORY"
+          fi
         env:
+          SURFACE: ${{ matrix.surface }}
           BUILD_DIRECTORY: ${{ matrix.directory }}
+          RELEASE: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && '1' || '0' }}
       - name: Upload the build from this workflow run
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -226,8 +242,42 @@ jobs:
             test-results
           retention-days: 7
 
+  visual:
+    name: Visual screenshot regression
+    needs: builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+      options: --ipc=host
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Download the tested Storybook artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-build
+          path: .validation-artifacts/storybook
+      - name: Restore Storybook
+        run: tar -xzf .validation-artifacts/storybook/build.tar.gz
+      - name: Compare committed screenshots
+        run: npm run test:visual
+      - name: Upload visual report and screenshot differences
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: visual-reports
+          path: |
+            playwright-report/visual
+            test-results/visual
+          retention-days: 7
+
   complete-snapshot:
-    needs: [impact, source, security, unit, storybook, builds, e2e]
+    needs: [impact, source, security, unit, storybook, builds, e2e, visual]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -252,90 +302,56 @@ jobs:
 
   deploy:
     needs: complete-snapshot
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.complete-snapshot.outputs.e2e_mode != 'none'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.complete-snapshot.outputs.e2e_mode != 'none'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment: production
-    outputs:
-      app_url: ${{ steps.app.outputs.url }}
-      storybook_url: ${{ steps.storybook.outputs.url }}
     env:
       VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+      VERCEL_APP_PROJECT_ID: ${{ vars.VERCEL_APP_PROJECT_ID }}
+      VERCEL_STORYBOOK_PROJECT_ID: ${{ vars.VERCEL_STORYBOOK_PROJECT_ID }}
       VERCEL_TELEMETRY_DISABLED: "1"
-      NEXT_TELEMETRY_DISABLED: "1"
-      STORYBOOK_DISABLE_TELEMETRY: "1"
-      VALIDATION_TEST_WORKERS: "1"
+      E2E_SELECTION: ${{ needs.complete-snapshot.outputs.e2e_selection }}
     steps:
       - name: Check out validated main
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Build the static Storybook
-        run: npm run build-storybook
-      - name: Deploy the Next application
-        id: app
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_APP_PROJECT_ID }}
-        run: |
-          test -n "$VERCEL_TOKEN" || { echo "Configure the VERCEL_TOKEN Actions secret." >&2; exit 1; }
-          npx --yes vercel@65.2.0 deploy --non-interactive --prod --yes \
-            --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_SLUG" \
-            --token "$VERCEL_TOKEN" --json > "$RUNNER_TEMP/app-deployment.json"
-          node scripts/deployment/output.mjs "$RUNNER_TEMP/app-deployment.json" >> "$GITHUB_OUTPUT"
-      - name: Deploy the Storybook
-        id: storybook
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_STORYBOOK_PROJECT_ID }}
-        run: |
-          npx --yes vercel@65.2.0 deploy --non-interactive --cwd storybook-static --prod --yes \
-            --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_SLUG" \
-            --token "$VERCEL_TOKEN" --json > "$RUNNER_TEMP/storybook-deployment.json"
-          node scripts/deployment/output.mjs "$RUNNER_TEMP/storybook-deployment.json" >> "$GITHUB_OUTPUT"
-
-  post-deploy-e2e:
-    needs: [deploy, complete-snapshot]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      DEPLOYMENT_URL: ${{ needs.deploy.outputs.app_url }}
-      STORYBOOK_DEPLOYMENT_URL: ${{ needs.deploy.outputs.storybook_url }}
-      E2E_SELECTION: ${{ needs.complete-snapshot.outputs.e2e_selection }}
-    steps:
-      - name: Check out deployed source
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install locked browser tooling
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Set up locked browser tooling
+        uses: ./.github/actions/setup
       - name: Install Chrome and system dependencies
         run: node node_modules/@playwright/test/cli.js install --with-deps chrome
-      - name: Test the public application and Storybook
-        run: npm run test:deployment -- --workers=1 --forbid-only --reporter=github,html
+      - name: Download the tested application artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: application-build
+          path: .validation-artifacts/application
+      - name: Download the tested Storybook artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-build
+          path: .validation-artifacts/storybook
+      - name: Restore the exact artifacts validated by E2E
+        run: |
+          tar -xzf .validation-artifacts/application/build.tar.gz
+          tar -xzf .validation-artifacts/storybook/build.tar.gz
+      - name: Publish candidates, verify, promote and verify production
+        run: node scripts/deployment/cli.mjs release
         env:
-          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/application
-      - name: Run affected booking scenarios on the published Storybook
-        run: node scripts/e2e/staging.mjs
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Recover an interrupted or failed production promotion
+        if: ${{ failure() || cancelled() }}
+        run: node scripts/deployment/cli.mjs rollback
         env:
-          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/business-rules
-      - name: Upload browser reports and failure traces
-        if: ${{ !cancelled() }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Upload release state, browser reports and failure traces
+        if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: production-e2e
+          name: production-release
+          include-hidden-files: true
           path: |
+            .superpowers/release/state.json
+            .superpowers/validation/reports
             playwright-report
             test-results

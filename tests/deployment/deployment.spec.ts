@@ -45,7 +45,7 @@ test("deployed Next app boots its worker and supports CRUD", async ({ page }, te
   await page.getByTestId(PageTestId.Root).screenshot({ path: testInfo.outputPath("deployed-workspace.png") })
 })
 
-test("deployed demo resets in-memory data on a fresh page load", async ({ page }) => {
+test("deployed demo retains created bookings after a fresh page load", async ({ page }) => {
   await page.clock.install({ time: new Date(DemoNow) })
   await page.goto("/")
   await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(DeploymentFixture.InitialBookings)
@@ -53,7 +53,7 @@ test("deployed demo resets in-memory data on a fresh page load", async ({ page }
   await page.getByTestId(EditorTestId.Submit).click()
   await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(DeploymentFixture.AfterCreation)
   await page.reload()
-  await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(DeploymentFixture.InitialBookings)
+  await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(DeploymentFixture.AfterCreation)
 })
 
 test("published Storybook boots its worker and supports booking creation", async ({ page }) => {

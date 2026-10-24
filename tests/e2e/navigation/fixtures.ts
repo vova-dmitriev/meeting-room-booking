@@ -1,0 +1,25 @@
+import { BootstrapFixture } from "../bootstrap/bootstrap.fixtures"
+
+export const NavigationFixture = {
+  Origin: process.env.APPLICATION_TEST_URL ?? process.env.DEPLOYMENT_URL ?? BootstrapFixture.Origin,
+  Now: "2026-10-24T21:30:00Z",
+  Today: "2026-10-25",
+  AfterMidnight: "2026-10-25T21:30:00Z",
+  NextToday: "2026-10-26",
+  First: "2026-11-03",
+  Second: "2026-11-04",
+  Third: "2026-11-05",
+  Initial: "/?source=calendar&date=2026-11-03#room",
+  Selected: "/?source=calendar&date=2026-11-04#room",
+  ThirdSelected: "/?source=calendar&date=2026-11-05#room",
+  SameDayNavigation: "/?source=other&date=2026-11-04#other",
+  Missing: "/?source=calendar#room",
+  Invalid: "/?source=calendar&date=2026-02-30#room",
+  InvalidDate: "2026-02-30",
+  Story: "/iframe.html?id=preview-booking-workspace--default&viewMode=story",
+  Title: "URL date persistence",
+  FreshTitle: "Fresh URL date draft",
+  HistoryMarker: "retained",
+  Start: "09:00",
+  End: "10:00",
+} as const

@@ -57,7 +57,8 @@ export const primitiveRules = [
 
 export const zustandConsumerRules = [
   {
-    selector: "CallExpression[callee.property.name=/^(setState|getState|subscribe)$/]",
+    // this.setState is the React class API (error boundaries), not a Zustand store call.
+    selector: "CallExpression[callee.property.name=/^(setState|getState|subscribe)$/]:not([callee.object.type='ThisExpression'])",
     message: "Consume Zustand through named hooks in model/selectors.ts.",
   },
 ]

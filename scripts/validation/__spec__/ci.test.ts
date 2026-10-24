@@ -24,7 +24,7 @@ const commandIds = [
 const selection = { version: 1, mode: "all", files: [], reason: "Release validation" }
 
 const results = Object.fromEntries(
-  ["impact", "source", "security", "unit", "storybook", "builds", "e2e"].map((name) => [name, { result: "success" }]),
+  ["impact", "source", "security", "unit", "storybook", "builds", "e2e", "visual"].map((name) => [name, { result: "success" }]),
 )
 
 const input = (changes = {}, plan = selection, mode = plan.mode) =>
@@ -43,12 +43,16 @@ describe("visible CI checks", () => {
     expect(() => assertCiResults(...input())).not.toThrow()
   })
 
-  it.each(["impact", "source", "security", "unit", "storybook", "builds", "e2e"])("blocks absent %s job results", (name) => {
+  it.each(["impact", "source", "security", "unit", "storybook", "builds", "e2e", "visual"])("blocks absent %s job results", (name) => {
     expect(() => assertCiResults(...input({ [name]: undefined }))).toThrow()
   })
 
   it.each(["failure", "cancelled", "skipped", "unknown"])("blocks required runner result %s", (result) => {
     expect(() => assertCiResults(...input({ source: { result } }))).toThrow()
+  })
+
+  it.each(["failure", "cancelled", "skipped"])("blocks visual result %s", (result) => {
+    expect(() => assertCiResults(...input({ visual: { result } }))).toThrow()
   })
 
   it("accepts skipped E2E only for a validated explicit none selection", () => {

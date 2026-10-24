@@ -16,6 +16,8 @@ type Story = StoryObj<typeof meta>
 
 export const Loading: Story = {}
 
+export const DarkLoading: Story = { globals: { theme: Theme.Dark } }
+
 export const Error: Story = { args: { phase: BootstrapPhase.Error } }
 
 export const DarkError: Story = { args: { phase: BootstrapPhase.Error }, globals: { theme: Theme.Dark } }

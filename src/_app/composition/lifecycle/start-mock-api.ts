@@ -5,7 +5,7 @@ export function startMockApi(): Promise<void> {
 
   startup = Promise.all([import("@/_app/api/mock/browser"), import("@/_app/api/mock/handlers")])
     .then(async ([{ worker }, { createHandlers }]) => {
-      worker.resetHandlers(...createHandlers(`${window.location.origin}/api`))
+      worker.resetHandlers(...createHandlers(`${window.location.origin}/api`, undefined, undefined, { persist: true }))
 
       try {
         await worker.start({
