@@ -7,11 +7,13 @@ export async function holdBootstrapAndData(page: Page) {
       const register = navigator.serviceWorker.register.bind(navigator.serviceWorker)
       const originalFetch = window.fetch.bind(window)
       const browser = window as unknown as { bootstrapReads: number }
+      const workerReleased = new Promise<void>((resolve) => window.addEventListener(workerEvent, () => resolve(), { once: true }))
+      const dataReleased = new Promise<void>((resolve) => window.addEventListener(dataEvent, () => resolve(), { once: true }))
 
       browser.bootstrapReads = 0
 
       navigator.serviceWorker.register = async (...args) => {
-        await new Promise<void>((resolve) => window.addEventListener(workerEvent, () => resolve(), { once: true }))
+        await workerReleased
 
         return register(...args)
       }
@@ -21,7 +23,7 @@ export async function holdBootstrapAndData(page: Page) {
 
         if (request.method === "GET" && new URL(request.url).pathname.endsWith(path)) {
           browser.bootstrapReads += 1
-          await new Promise<void>((resolve) => window.addEventListener(dataEvent, () => resolve(), { once: true }))
+          await dataReleased
         }
 
         return originalFetch(input, init)

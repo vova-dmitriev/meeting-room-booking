@@ -12,4 +12,8 @@ export const BootstrapFixture = {
   ListSkeletons: 3,
   EmptyCount: 0,
   InitialBookings: 3,
+  SkeletonFonts: [
+    { name: "platform font", style: "" },
+    { name: "Arial font", style: "body { font-family: Arial, sans-serif; }" },
+  ],
 } as const
