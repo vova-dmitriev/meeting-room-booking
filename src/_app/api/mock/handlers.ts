@@ -1,21 +1,40 @@
 import { delay, http, HttpResponse } from "msw"
-import { BookingError, validateBooking, type Booking, type BookingInput } from "@/entities/booking"
+import { BookingError, validateBooking, type Booking } from "@/entities/booking"
 import { PreviewState } from "@/shared/config"
 import { clock } from "@/shared/lib/clock"
 import { seedBookings } from "./fixtures"
 import { createI18n } from "@/shared/lib/i18n"
 import { HttpStatus } from "@/shared/api"
 import { MockLatency, MockBooking, MockErrorCode } from "./config"
+import { parseBookingRequest } from "./parse-booking-request"
+import { loadStoredBookings, persistBookings } from "./persistence"
 
 const t = createI18n().t
 
-export function createHandlers(origin: string, scenario: PreviewState = PreviewState.Default, now: () => Date = () => clock.now()) {
-  let bookings: Booking[] = scenario === PreviewState.Empty ? [] : structuredClone(seedBookings)
+export interface MockHandlerOptions {
+  persist?: boolean
+}
+
+export function createHandlers(
+  origin: string,
+  scenario: PreviewState = PreviewState.Default,
+  now: () => Date = () => clock.now(),
+  options: MockHandlerOptions = {},
+) {
+  const stored = options.persist && scenario === PreviewState.Default ? loadStoredBookings() : undefined
+  let bookings: Booking[] = stored ?? (scenario === PreviewState.Empty ? [] : structuredClone(seedBookings))
+
+  function remember() {
+    if (options.persist) persistBookings(bookings)
+  }
+
   let pendingConflict = scenario === PreviewState.Conflict
 
   async function write(request: Request, id?: string) {
     await delay(scenario === PreviewState.Sending ? MockLatency.Sending : MockLatency.Write)
-    const input = (await request.json()) as BookingInput
+    const input = await parseBookingRequest(request)
+
+    if (!input) return HttpResponse.json({ code: MockErrorCode.InvalidInput }, { status: HttpStatus.BadRequest })
 
     if (id && !bookings.some((booking) => booking.id === id))
       return HttpResponse.json({ code: MockErrorCode.NotFound }, { status: HttpStatus.NotFound })
@@ -38,6 +57,7 @@ export function createHandlers(origin: string, scenario: PreviewState = PreviewS
     const booking = { ...input, id: id ?? crypto.randomUUID(), host: t("demo.meetings.hostThree"), people: MockBooking.DefaultPeople }
 
     bookings = [...bookings.filter((item) => item.id !== booking.id), booking]
+    remember()
 
     return HttpResponse.json(booking, { status: id ? HttpStatus.Ok : HttpStatus.Created })
   }
@@ -54,7 +74,12 @@ export function createHandlers(origin: string, scenario: PreviewState = PreviewS
     http.patch(`${origin}/bookings/:id`, ({ request, params }) => write(request, String(params.id))),
     http.delete(`${origin}/bookings/:id`, async ({ params }) => {
       await delay(MockLatency.Delete)
+
+      if (!bookings.some((booking) => booking.id === params.id))
+        return HttpResponse.json({ code: MockErrorCode.NotFound }, { status: HttpStatus.NotFound })
+
       bookings = bookings.filter((booking) => booking.id !== params.id)
+      remember()
 
       return new HttpResponse(null, { status: HttpStatus.NoContent })
     }),

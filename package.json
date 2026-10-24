@@ -25,6 +25,7 @@
     "build-storybook": "storybook build --disable-telemetry",
     "test-storybook": "vitest run --config vitest.storybook.config.ts",
     "test:e2e": "playwright test",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
     "test:deployment": "playwright test --config playwright.deployment.config.ts",
     "test:staging": "playwright test --config playwright.staging.config.ts",
     "check:frontend:source": "npm run lint && npm run lint:fsd && npm run lint:structure && npm run lint:react && npm run format:check && npm run knip",

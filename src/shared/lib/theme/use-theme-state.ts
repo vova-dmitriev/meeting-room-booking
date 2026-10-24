@@ -1,34 +1,27 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { Theme } from "@/shared/config"
+import { getPreferredTheme, getSystemTheme, saveThemePreference, subscribeToTheme } from "./persistence/preferences"
 
-function getSystemTheme() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? Theme.Dark : Theme.Light
+// Inherit the prepaint root theme until the browser snapshot is available.
+function getServerSnapshot() {
+  return undefined
 }
 
-function getServerTheme() {
-  return Theme.Light
-}
-
-function subscribeToSystemTheme(onChange: () => void) {
-  const preference = window.matchMedia("(prefers-color-scheme: dark)")
-
-  preference.addEventListener("change", onChange)
-
-  return () => {
-    preference.removeEventListener("change", onChange)
-  }
-}
-
-export function useThemeState(initialTheme?: Theme) {
-  const systemTheme = useSyncExternalStore(subscribeToSystemTheme, getSystemTheme, getServerTheme)
+export function useThemeState(initialTheme?: Theme, persistent = true) {
+  const preferredTheme = useSyncExternalStore(subscribeToTheme, persistent ? getPreferredTheme : getSystemTheme, getServerSnapshot)
   const [manualTheme, setManualTheme] = useState<Theme>()
-  const theme = manualTheme ?? initialTheme ?? systemTheme
+  const appliedTheme = manualTheme ?? initialTheme ?? preferredTheme
+  const theme = appliedTheme ?? Theme.Light
 
   const toggle = useCallback(() => {
-    setManualTheme(theme === Theme.Dark ? Theme.Light : Theme.Dark)
-  }, [theme])
+    const next = theme === Theme.Dark ? Theme.Light : Theme.Dark
+
+    setManualTheme(next)
+
+    if (persistent && initialTheme === undefined) saveThemePreference(next)
+  }, [initialTheme, persistent, theme])
 
   return useMemo(() => {
-    return { theme, toggle }
-  }, [theme, toggle])
+    return { theme, appliedTheme, toggle }
+  }, [appliedTheme, theme, toggle])
 }

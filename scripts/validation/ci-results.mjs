@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { readE2eSelection } from "../e2e/selection.mjs"
 
-const requiredJobs = ["impact", "source", "security", "unit", "storybook", "builds", "e2e"]
+const requiredJobs = ["impact", "source", "security", "unit", "storybook", "builds", "e2e", "visual"]
 
 export function assertCiResults(raw, rawSelection, mode) {
   if (!rawSelection) throw new Error("The impact job must publish an explicit E2E selection")

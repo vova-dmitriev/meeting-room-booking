@@ -7,6 +7,7 @@ import { parseCalendarDate } from "@/shared/lib/date"
 import { useTranslation } from "@/shared/lib/i18n"
 import { notifySuccess } from "@/shared/ui/toast"
 import type { BookingFormProps, BookingSaveRequest } from "./types"
+import { getBookingValidationError } from "./errors/api-validation"
 import { getBookingAvailability } from "./availability/availability"
 import { cacheSavedBooking, refreshSavedBooking } from "./save/booking-cache"
 import {
@@ -67,6 +68,8 @@ export function useBookingEditor({ date, bookings, editing, onCancel, onSaved, s
       }
     },
     onError: async (failure, request) => {
+      const validationError = getBookingValidationError(failure)
+
       if (failure instanceof BookingApiError && failure.isConflict) {
         setConflict(true)
 
@@ -78,6 +81,10 @@ export function useBookingEditor({ date, bookings, editing, onCancel, onSaved, s
         } catch {
           setRefreshFailed(true)
         }
+      } else if (validationError) {
+        setError(validationError)
+        setConflict(false)
+        setRefreshFailed(false)
       } else {
         setRefreshFailed(true)
       }

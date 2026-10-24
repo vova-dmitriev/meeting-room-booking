@@ -9,6 +9,7 @@ const playwrightCli = require.resolve("@playwright/test/cli")
 const plan = (mode, reason, files = []) => ({ version: 1, mode, files, reason })
 
 function impact(file) {
+  if (/^tests\/e2e\/visual\//.test(file) || file === "playwright.visual.config.ts") return "none"
   if (/^(?:public|app|src\/_app|\.storybook)\//.test(file)) return "all"
   if (/\.(?:md|markdown)$/i.test(file)) return "none"
   if (/(?:^|\/)__spec__\//.test(file) || /^tests\/unit\//.test(file)) return "none"

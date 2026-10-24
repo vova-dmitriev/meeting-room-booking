@@ -21,6 +21,17 @@ describe("E2E impact planning", () => {
     },
   )
 
+  it.each([
+    "tests/e2e/visual/desktop.spec.ts",
+    "tests/e2e/visual/workspace.ts",
+    "tests/e2e/visual/__screenshots__/workspace-desktop-linux.png",
+    "playwright.visual.config.ts",
+  ])("leaves %s to the dedicated visual job", async (file) => {
+    fixture.write(file, "// changed\n")
+
+    expect(await createE2ePlan(fixture)).toMatchObject({ mode: "none", files: [] })
+  })
+
   it.each([firstSpec, helperFile, sourceFile])("selects dependent specs for %s", async (file) => {
     fixture.write(file, file === helperFile ? changedHelper : changedValue)
 

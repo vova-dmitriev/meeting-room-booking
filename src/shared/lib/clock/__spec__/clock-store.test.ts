@@ -25,7 +25,7 @@ afterEach(() => {
 })
 
 describe("live clock subscription", () => {
-  it("publishes real time within one second and retains the snapshot between updates", () => {
+  it("publishes elapsed seconds without rounding away subminute precision", () => {
     const observed: Date[] = []
 
     cleanups.push(
@@ -37,12 +37,19 @@ describe("live clock subscription", () => {
     const initial = clockStore.getSnapshot()
 
     expect(initial.toISOString()).toBe(fixture.initial)
-    expect(clockStore.getSnapshot()).toBe(initial)
 
     vi.advanceTimersByTime(fixture.tick)
 
     expect(clockStore.getSnapshot().toISOString()).toBe(fixture.next)
-    expect(observed.at(-1)?.toISOString()).toBe(fixture.next)
+    expect(observed).toHaveLength(1)
+  })
+
+  it("preserves milliseconds at a business cutoff", () => {
+    cleanups.push(clockStore.subscribe(() => {}))
+    vi.setSystemTime(new Date(fixture.fractionalCutoff))
+    windowEvents.dispatchEvent(new Event("focus"))
+
+    expect(clockStore.getSnapshot().toISOString()).toBe(fixture.fractionalCutoff)
   })
 
   it.each(["focus", "visibilitychange"])("refreshes immediately after %s without waiting for a tick", (event) => {
@@ -80,7 +87,7 @@ describe("live clock subscription", () => {
     expect(observed).toHaveLength(updateCount)
   })
 
-  it("shares one timer and removes timer and event subscriptions after the final subscriber leaves", () => {
+  it("starts one timer for the first subscriber and stops it after the final subscriber leaves", () => {
     const unsubscribeFirst = clockStore.subscribe(() => {})
     const unsubscribeLast = clockStore.subscribe(() => {})
 

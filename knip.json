@@ -10,6 +10,7 @@
     "eslint/root-test-ids/__spec__/root-test-ids.fixtures.ts",
     "scripts/quality/*.mjs",
     "scripts/e2e/{plan,staging}.mjs",
+    "scripts/deployment/{build,cli}.mjs",
     "scripts/validation/*.mjs"
   ],
   "project": [

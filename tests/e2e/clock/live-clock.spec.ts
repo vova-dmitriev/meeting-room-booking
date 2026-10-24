@@ -55,3 +55,15 @@ test("keeps the selected date across Moscow midnight and opens the new day", asy
   await expect(page.getByTestId(EditorTestId.Start)).toHaveValue(ClockFixture.Opening)
   await expect(page.getByTestId(EditorTestId.End)).toHaveValue(ClockFixture.OpeningEnd)
 })
+
+test("disables creation immediately after the final slot boundary", async ({ page }) => {
+  await openClockWorkspace(page, ClockFixture.BeforeLastSlot)
+  await page.clock.pauseAt(new Date(ClockFixture.LastSlot))
+  await expect(page.getByTestId(SchedulerTestId.Create)).toBeEnabled()
+  await page.getByTestId(SchedulerTestId.Create).click()
+  await page.clock.setSystemTime(new Date(ClockFixture.AfterLastSlot))
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+  await expect(page.getByTestId(SchedulerTestId.Create)).toBeDisabled()
+  await expect(page.getByTestId(EditorTestId.Submit)).toBeDisabled()
+  await expect(page.getByTestId(DayFeedTestId.Free)).toHaveCount(ClockFixture.EmptyBookings)
+})

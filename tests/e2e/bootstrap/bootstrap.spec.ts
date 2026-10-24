@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test"
 import { BootstrapTestId } from "@/_app/composition/bootstrap-status/test-ids"
 import { BookingTestId, DemoNow } from "@/entities/booking"
+import { ScheduleSkeletonTestId } from "@/widgets/booking-scheduler"
+import { SkeletonTestId } from "@/shared/ui/skeleton/test-ids"
+import { SchedulerTestId } from "@/widgets/booking-scheduler"
+import { PageTestId } from "@/_pages/bookings"
 import { createI18n } from "@/shared/lib/i18n"
+import { holdBootstrapAndData, readBootstrapRequests } from "./loading-control"
 import { BootstrapFixture } from "./bootstrap.fixtures"
 
 const t = createI18n().t
@@ -58,9 +63,55 @@ test("recovers the actual workspace after a transient registration rejection", a
   await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(0)
   await page.getByTestId(BootstrapTestId.Retry).click()
   await expect(page.getByTestId(BootstrapTestId.Loading)).toHaveAttribute("role", "status")
-  await expect(page.getByTestId(BootstrapTestId.Loading)).toContainText(t("bootstrap.loadingTitle"))
+  await expect(page.getByTestId(BootstrapTestId.Loading)).toHaveAccessibleName(t("booking.feedback.loading"))
+  await expect(page.getByTestId(ScheduleSkeletonTestId.List).getByTestId(SkeletonTestId.Root)).toHaveCount(BootstrapFixture.ListSkeletons)
+  await expect(page.getByTestId(SchedulerTestId.RoomHeading)).toBeVisible()
+  await expect(page.getByTestId(PageTestId.Root)).toHaveCount(BootstrapFixture.EmptyCount)
   await expect(page.getByTestId(BootstrapTestId.Retry)).toHaveCount(0)
   await page.evaluate((resume) => window.dispatchEvent(new Event(resume)), BootstrapFixture.ResumeRegistration)
   await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(BootstrapFixture.InitialBookings)
   await expect(page.getByTestId(BootstrapTestId.Status)).toHaveCount(0)
+})
+
+test("keeps the schedule skeleton from worker startup through booking data loading", async ({ page }) => {
+  await holdBootstrapAndData(page)
+  await page.goto("/")
+  await expect(page.getByTestId(ScheduleSkeletonTestId.List).getByTestId(SkeletonTestId.Root)).toHaveCount(BootstrapFixture.ListSkeletons)
+  await expect(page.getByTestId(BootstrapTestId.Loading)).toHaveAccessibleName(t("booking.feedback.loading"))
+  await expect(page.getByTestId(PageTestId.Root)).toHaveCount(BootstrapFixture.EmptyCount)
+  await expect(page.getByTestId(BootstrapTestId.Loading)).toHaveText(BootstrapFixture.RoomCopy, { useInnerText: true })
+  expect(await readBootstrapRequests(page)).toBe(BootstrapFixture.EmptyCount)
+
+  const initialRows = await page
+    .getByTestId(ScheduleSkeletonTestId.List)
+    .getByTestId(SkeletonTestId.Root)
+    .evaluateAll((rows) =>
+      rows.map((row) => ({
+        x: row.getBoundingClientRect().x,
+        y: row.getBoundingClientRect().y,
+        width: row.getBoundingClientRect().width,
+        height: row.getBoundingClientRect().height,
+      })),
+    )
+
+  await page.evaluate((resume) => window.dispatchEvent(new Event(resume)), BootstrapFixture.ResumeRegistration)
+  await expect(page.getByTestId(PageTestId.Root)).toBeVisible()
+  await expect(page.getByTestId(ScheduleSkeletonTestId.List).getByTestId(SkeletonTestId.Root)).toHaveCount(BootstrapFixture.ListSkeletons)
+
+  const dataRows = await page
+    .getByTestId(ScheduleSkeletonTestId.List)
+    .getByTestId(SkeletonTestId.Root)
+    .evaluateAll((rows) =>
+      rows.map((row) => ({
+        x: row.getBoundingClientRect().x,
+        y: row.getBoundingClientRect().y,
+        width: row.getBoundingClientRect().width,
+        height: row.getBoundingClientRect().height,
+      })),
+    )
+
+  expect(dataRows).toEqual(initialRows)
+  await page.evaluate((resume) => window.dispatchEvent(new Event(resume)), BootstrapFixture.ResumeData)
+  await expect(page.getByTestId(BookingTestId.Card)).toHaveCount(BootstrapFixture.InitialBookings)
+  await expect(page.getByTestId(ScheduleSkeletonTestId.List)).toHaveCount(BootstrapFixture.EmptyCount)
 })

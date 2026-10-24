@@ -84,9 +84,29 @@
   --room-line: #879cbc;
 }
 @media (prefers-color-scheme: dark) {
+  /* Full copy of [data-theme="dark"] above: keep both blocks in sync for no-JS dark mode. */
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --canvas: #1f2734;
+    --panel: #252d3c;
     --ink: #f2f5ff;
+    --muted: #c3ccdf;
+    --line: #4b5870;
+    --control-border: #a2adc3;
+    --accent: #9abfff;
+    --accent-hover: #b6d0ff;
+    --soft: #34455f;
+    --on-accent: #142948;
+    --danger: #f4aaaa;
+    --danger-soft: #432e3b;
+    --warning: #e7ce8c;
+    --warning-soft: #413b30;
+    --sidebar: #18202e;
+    --sidebar-text: #f2f5ff;
+    --sidebar-muted: #b7c3d9;
+    --sidebar-active: #34445e;
+    --subtle: #2e384a;
+    --room: #35455f;
+    --room-line: #879cbc;
   }
 }
