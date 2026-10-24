@@ -12,38 +12,73 @@ concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  CI: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+  STORYBOOK_DISABLE_TELEMETRY: "1"
+  VALIDATION_TEST_WORKERS: "1"
+
 jobs:
-  complete-snapshot:
+  impact:
+    name: E2E impact
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     outputs:
-      e2e_selection: ${{ steps.e2e.outputs.selection }}
-      e2e_mode: ${{ steps.e2e.outputs.mode }}
-    env:
-      CI: "1"
-      VALIDATION_CONCURRENCY: "2"
-      NEXT_TELEMETRY_DISABLED: "1"
-      STORYBOOK_DISABLE_TELEMETRY: "1"
+      selection: ${{ steps.e2e.outputs.selection }}
+      mode: ${{ steps.e2e.outputs.mode }}
     steps:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Set up the shared Node baseline
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install locked browser tooling
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
       - name: Select affected Playwright scenarios
         id: e2e
         run: node scripts/e2e/plan.mjs
         env:
           E2E_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-      - name: Install the selected Chrome channel and system dependencies
-        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+
+  source:
+    name: Source rules and types
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Translation key parity
+        run: node scripts/validation/ci.mjs i18n
+      - name: TypeScript
+        run: node scripts/validation/ci.mjs typecheck
+      - name: ESLint
+        run: node scripts/validation/ci.mjs lint
+      - name: FSD boundaries
+        run: node scripts/validation/ci.mjs lint:fsd
+      - name: Component structure
+        run: node scripts/validation/ci.mjs lint:structure
+      - name: React Doctor
+        run: node scripts/validation/ci.mjs lint:react
+      - name: Prettier
+        run: node scripts/validation/ci.mjs format:check
+      - name: Unused code and dependencies
+        run: node scripts/validation/ci.mjs knip
+
+  security:
+    name: Security scanners
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
       - name: Install checksum-verified Gitleaks 8.30.1
         working-directory: ${{ runner.temp }}
         shell: bash
@@ -60,10 +95,160 @@ jobs:
         run: |
           docker version
           docker pull semgrep/semgrep@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
-      - name: Run the complete local and pre-commit validation graph
-        run: npm run check:working-copy
+      - name: Scan the complete checked-out source
+        run: node scripts/validation/ci.mjs security
+
+  unit:
+    name: Unit and integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Run every unit and integration spec
+        run: node scripts/validation/ci.mjs unit
+      - name: Upload unit reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unit-reports
+          include-hidden-files: true
+          path: .superpowers/validation/reports
+          retention-days: 7
+
+  storybook:
+    name: Storybook browser and accessibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Install Chrome and system dependencies
+        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+      - name: Test mobile, tablet and desktop stories
+        run: node scripts/validation/ci.mjs storybook
+      - name: Upload Storybook reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: storybook-reports
+          include-hidden-files: true
+          path: .superpowers/validation/reports
+          retention-days: 7
+
+  builds:
+    name: Build ${{ matrix.surface }}
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - surface: application
+            command: build-application
+            directory: .next
+          - surface: storybook
+            command: build-storybook
+            directory: storybook-static
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Build the production surface
+        run: node scripts/validation/ci.mjs "$BUILD_COMMAND"
         env:
-          E2E_SELECTION: ${{ steps.e2e.outputs.selection }}
+          BUILD_COMMAND: ${{ matrix.command }}
+      - name: Package all build files, including hidden Next artifacts
+        run: tar -czf "$RUNNER_TEMP/build.tar.gz" "$BUILD_DIRECTORY"
+        env:
+          BUILD_DIRECTORY: ${{ matrix.directory }}
+      - name: Upload the build from this workflow run
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.surface }}-build
+          path: ${{ runner.temp }}/build.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  e2e:
+    name: Affected Playwright scenarios
+    needs: [impact, builds]
+    if: needs.impact.outputs.mode != 'none'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      E2E_SELECTION: ${{ needs.impact.outputs.selection }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up locked Node tooling
+        uses: ./.github/actions/setup
+      - name: Install Chrome and system dependencies
+        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+      - name: Download the application from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: application-build
+          path: .validation-artifacts/application
+      - name: Download the Storybook from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-build
+          path: .validation-artifacts/storybook
+      - name: Restore both production surfaces
+        run: |
+          tar -xzf .validation-artifacts/application/build.tar.gz
+          tar -xzf .validation-artifacts/storybook/build.tar.gz
+      - name: Test isolated production servers across all viewports
+        run: node scripts/validation/ci.mjs e2e
+      - name: Upload E2E reports and failure traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: affected-e2e-reports
+          include-hidden-files: true
+          path: |
+            .superpowers/validation/reports
+            test-results
+          retention-days: 7
+
+  complete-snapshot:
+    needs: [impact, source, security, unit, storybook, builds, e2e]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      e2e_selection: ${{ needs.impact.outputs.selection }}
+      e2e_mode: ${{ needs.impact.outputs.mode }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Require every independent job to pass
+        run: node scripts/validation/ci-results.mjs
+        env:
+          CI_RESULTS_JSON: ${{ toJSON(needs) }}
+          E2E_SELECTION: ${{ needs.impact.outputs.selection }}
+          E2E_MODE: ${{ needs.impact.outputs.mode }}
 
   deploy:
     needs: complete-snapshot
