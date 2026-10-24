@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import { clock } from "@/shared/lib/clock"
 import type { Booking } from "@/entities/booking"
 import { createSchedulerStore } from "@/widgets/booking-scheduler/model/scheduler-store"
 import { schedulerFixture } from "./scheduler-store.fixtures"
@@ -6,8 +7,18 @@ import { schedulerFixture } from "./scheduler-store.fixtures"
 const { booking, otherBooking, nextDate } = schedulerFixture
 
 describe("scheduler store actions", () => {
+  it("initializes the selected day from the current Moscow clock", () => {
+    const now = vi.spyOn(clock, "now").mockReturnValue(new Date(schedulerFixture.initialClock.instant))
+
+    try {
+      expect(createSchedulerStore().getState().date).toBe(schedulerFixture.initialClock.date)
+    } finally {
+      now.mockRestore()
+    }
+  })
+
   it("starts and cancels editing while preserving the selected date", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
     const actions = store.getState()
 
     actions.startEditing(booking)
@@ -20,7 +31,7 @@ describe("scheduler store actions", () => {
   })
 
   it("changes the date and clears editing in one state transition", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
 
     store.getState().startEditing(booking)
 
@@ -33,8 +44,8 @@ describe("scheduler store actions", () => {
   })
 
   it("does not share editing or selection between scoped stores", () => {
-    const first = createSchedulerStore()
-    const second = createSchedulerStore()
+    const first = createSchedulerStore(booking.date)
+    const second = createSchedulerStore(booking.date)
 
     first.getState().startEditing(booking)
     first.getState().selectDate(nextDate)
@@ -44,7 +55,7 @@ describe("scheduler store actions", () => {
   })
 
   it("clears only the currently edited booking after deletion", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
 
     store.getState().startEditing(booking)
     store.getState().bookingDeleted(otherBooking.id)
@@ -55,7 +66,7 @@ describe("scheduler store actions", () => {
   })
 
   it("preserves a different editor selected while deletion was pending", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
     const other = otherBooking
 
     store.getState().startEditing(booking)

@@ -1,5 +1,3 @@
-import { clock } from "@/shared/lib/clock"
-import { DemoNow } from "@/entities/booking"
 import { useCallback, useEffect, useState } from "react"
 import { BootstrapPhase } from "./bootstrap-values"
 import { startMockApi } from "./start-mock-api"
@@ -15,8 +13,6 @@ export function useMockBootstrap() {
 
   useEffect(() => {
     let active = true
-
-    clock.now = () => new Date(DemoNow)
 
     void startMockApi()
       .then(() => {

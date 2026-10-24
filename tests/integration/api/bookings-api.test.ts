@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { http, HttpResponse } from "msw"
 import { setupServer } from "msw/node"
 import { createHandlers } from "@/_app/api/mock/handlers"
-import { bookingApi, BookingApiError, DemoDate, type BookingInput } from "@/entities/booking"
+import { bookingApi, BookingApiError, DemoDate, DemoNow, type BookingInput } from "@/entities/booking"
 import { apiClient } from "@/shared/api"
 import { PreviewState } from "@/shared/config"
 
@@ -16,7 +16,7 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" })
 })
 
-beforeEach(() => server.resetHandlers(...createHandlers(origin)))
+beforeEach(() => server.resetHandlers(...createHandlers(origin, PreviewState.Default, () => new Date(DemoNow))))
 
 afterAll(() => {
   server.close()
@@ -71,7 +71,7 @@ describe("Fetch booking API with the application MSW contract", () => {
   })
 
   it("refreshes a concurrent 409 reservation and permits a new free interval", async () => {
-    server.resetHandlers(...createHandlers(origin, PreviewState.Conflict))
+    server.resetHandlers(...createHandlers(origin, PreviewState.Conflict, () => new Date(DemoNow)))
 
     await expect(bookingApi.create(input)).rejects.toMatchObject({ status: 409 })
 
@@ -108,7 +108,7 @@ describe("Fetch booking API with the application MSW contract", () => {
     const controller = new AbortController()
 
     controller.abort()
-    server.resetHandlers(...createHandlers(origin))
+    server.resetHandlers(...createHandlers(origin, PreviewState.Default, () => new Date(DemoNow)))
     await expect(bookingApi.list(DemoDate, controller.signal)).rejects.toMatchObject({ name: "AbortError" })
   })
 })

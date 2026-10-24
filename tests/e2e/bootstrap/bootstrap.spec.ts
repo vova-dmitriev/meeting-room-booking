@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { BootstrapTestId } from "@/_app/composition/bootstrap-status/test-ids"
-import { BookingTestId } from "@/entities/booking"
+import { BookingTestId, DemoNow } from "@/entities/booking"
 import { createI18n } from "@/shared/lib/i18n"
 import { BootstrapFixture } from "./bootstrap.fixtures"
 
@@ -8,6 +8,10 @@ const t = createI18n().t
 const applicationOrigin = process.env.APPLICATION_TEST_URL ?? process.env.DEPLOYMENT_URL ?? BootstrapFixture.Origin
 
 test.use({ baseURL: applicationOrigin })
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.install({ time: new Date(DemoNow) })
+})
 
 test.describe("blocked service workers", () => {
   test.use({ serviceWorkers: "block" })

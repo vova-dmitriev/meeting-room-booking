@@ -33,6 +33,10 @@ describe("booking rules", () => {
   it("rejects past dates, elapsed seconds and invalid dates", () => {
     for (const date of validationFixture.invalidDates) expect(validateBooking({ ...input, date }, context).length).toBeGreaterThan(0)
   })
+
+  it.each(validationFixture.sameDayBoundaries)("checks a Moscow start against the precise instant $now", ({ now, expected }) => {
+    expect(validateBooking(input, { ...context, now: new Date(now) })).toEqual(expected)
+  })
 })
 
 describe("ten-minute booking grid", () => {

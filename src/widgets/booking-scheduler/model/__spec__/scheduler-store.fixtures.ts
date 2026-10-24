@@ -6,4 +6,5 @@ export const schedulerFixture = {
   booking,
   otherBooking: { ...booking, id: "other" },
   nextDate: "2026-10-24",
+  initialClock: { instant: "2026-10-24T21:30:00Z", date: "2026-10-25" },
 }

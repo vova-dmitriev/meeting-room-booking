@@ -1,4 +1,5 @@
 import type { BookingInput, ValidationContext } from "../../model/types"
+import { BookingError } from "../../config/booking-values"
 
 const futureDate = "2026-10-24"
 const currentDate = "2026-10-23"
@@ -8,10 +9,16 @@ const halfPastNine = "09:30"
 const halfPastTen = "10:30"
 const closingTime = "18:00"
 const offGridEnd = "10:35"
+const fixtureOffset = "+03:00"
 
 export const validationFixture = {
   input: { date: futureDate, start, end, title: "Design review" } satisfies BookingInput,
-  context: { bookings: [], now: new Date(`${currentDate}T${start}:30`) } satisfies ValidationContext,
+  context: { bookings: [], now: new Date(`${currentDate}T${start}:30${fixtureOffset}`) } satisfies ValidationContext,
+  sameDayBoundaries: [
+    { now: `${futureDate}T${start}:00${fixtureOffset}`, expected: [] },
+    { now: `${futureDate}T${start}:00.001${fixtureOffset}`, expected: [BookingError.Past] },
+    { now: `${futureDate}T${start}:01${fixtureOffset}`, expected: [BookingError.Past] },
+  ],
   parsedTime: { input: halfPastNine, minutes: 570 },
   malformedTime: "25:00",
   touchingInterval: { start: end, end: "12:00" },

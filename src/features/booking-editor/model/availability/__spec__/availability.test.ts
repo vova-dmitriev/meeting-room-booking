@@ -21,7 +21,14 @@ describe("booking time availability", () => {
     expect(getBookingAvailability(afterLastSlot.date, afterLastSlot.now).unavailable).toBe(true)
   })
 
-  it("blocks past dates using the local calendar date", () => {
+  it("blocks past dates using the Moscow calendar date", () => {
     expect(getBookingAvailability(past.date, past.now).unavailable).toBe(true)
   })
+
+  it.each([availabilityFixture.exactStep, availabilityFixture.fractionalSecond])(
+    "handles exact and fractional second boundaries",
+    ({ date, now, expected }) => {
+      expect(getBookingAvailability(date, now)).toEqual(expected)
+    },
+  )
 })

@@ -14,6 +14,6 @@ export const RuleInterval = {
   TouchAfter: { start: "10:00", end: "10:30" },
 } as const
 
-export const RuleDate = { Past: "2026-10-22", PastTime: "2026-10-23T12:30:00" } as const
+export const RuleDate = { Past: "2026-10-22", PastTime: "2026-10-23T12:30:00+03:00" } as const
 
 export const RuleServerFailure = { Delay: 350, Code: "UNAVAILABLE" } as const

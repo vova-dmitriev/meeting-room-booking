@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { BookingTime, bookingQueries, getDayFeed } from "@/entities/booking"
-import { clock } from "@/shared/lib/clock"
+import { BookingRule, bookingQueries, getDayFeed } from "@/entities/booking"
+import { roomTime, useClock } from "@/shared/lib/clock"
 import { useTheme } from "@/shared/lib/theme"
 import { useBookingDeleted, useCancelEditing, useEditingBooking, useSelectDate, useSelectedDate, useStartEditing } from "./selectors"
 import { useCompleteEditor, useCreateBooking, useEditorOpen, useEditorSession, useInitialInterval } from "./selectors"
@@ -20,8 +20,9 @@ export function useBookingScheduler() {
   const createBooking = useCreateBooking()
   const editorSession = useEditorSession()
   const completeEditor = useCompleteEditor()
-  const now = clock.now()
-  const unavailable = new Date(`${date}T${BookingTime.LastStart}:00`) < now
+  const now = useClock()
+  const { date: today, minutes } = roomTime(now)
+  const unavailable = date < today || (date === today && minutes > BookingRule.End - BookingRule.MinDuration)
   const { toggle: toggleTheme } = useTheme()
 
   const retry = useCallback(() => {

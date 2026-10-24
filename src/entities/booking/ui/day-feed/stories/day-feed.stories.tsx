@@ -8,7 +8,13 @@ import { DemoNow } from "@/entities/booking/config/booking-values"
 const t = createI18n().t
 const date = "2026-10-24"
 
-const StoryClock = { Past: "2026-10-25T08:30:00", Elapsed: "11:23:01", Before: "08:30:00", Started: "10:30:00" } as const
+const StoryClock = {
+  Offset: "+03:00",
+  Past: "2026-10-25T08:30:00+03:00",
+  Elapsed: "11:23:01",
+  Before: "08:30:00",
+  Started: "10:30:00",
+} as const
 
 const bookings = [
   { id: "planning", date, start: "10:00", end: "11:00", title: t("dayFeed.demoMeeting") },
@@ -39,10 +45,10 @@ export const PastDate: Story = { args: { now: new Date(StoryClock.Past) } }
 
 export const PastEmptyDate: Story = { args: { bookings: [], now: new Date(StoryClock.Past) } }
 
-export const ElapsedToday: Story = { args: { now: new Date(`${date}T${StoryClock.Elapsed}`) } }
+export const ElapsedToday: Story = { args: { now: new Date(`${date}T${StoryClock.Elapsed}${StoryClock.Offset}`) } }
 
-export const TodayBeforeWorkday: Story = { args: { bookings: [], now: new Date(`${date}T${StoryClock.Before}`) } }
+export const TodayBeforeWorkday: Story = { args: { bookings: [], now: new Date(`${date}T${StoryClock.Before}${StoryClock.Offset}`) } }
 
-export const StartedMeeting: Story = { args: { now: new Date(`${date}T${StoryClock.Started}`) } }
+export const StartedMeeting: Story = { args: { now: new Date(`${date}T${StoryClock.Started}${StoryClock.Offset}`) } }
 
 export const Dark: Story = { globals: { theme: Theme.Dark } }

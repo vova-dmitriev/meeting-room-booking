@@ -31,4 +31,4 @@ export const BookingTestId = {
 
 export const DemoDate = "2026-10-23"
 
-export const DemoNow = "2026-10-23T08:30:00"
+export const DemoNow = "2026-10-23T08:30:00+03:00"

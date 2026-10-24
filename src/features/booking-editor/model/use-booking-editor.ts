@@ -2,7 +2,7 @@ import { type FormEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { BookingApiError, BookingError, bookingQueries, bookingApi, validateBooking } from "@/entities/booking"
 import { PreviewState } from "@/shared/config"
-import { clock } from "@/shared/lib/clock"
+import { clock, useClock } from "@/shared/lib/clock"
 import { parseCalendarDate } from "@/shared/lib/date"
 import { useTranslation } from "@/shared/lib/i18n"
 import { notifySuccess } from "@/shared/ui/toast"
@@ -35,8 +35,9 @@ export function useBookingEditor({ date, bookings, editing, onCancel, onSaved, s
   const setConflict = useSetEditorConflict()
   const setRefreshFailed = useSetEditorRefreshFailed()
   const setSuccess = useSetEditorSuccess()
+  const now = useClock()
   const validDate = Boolean(parseCalendarDate(draft.date))
-  const availability = getBookingAvailability(draft.date, clock.now())
+  const availability = getBookingAvailability(draft.date, now)
   const targetEnabled = validDate && draft.date !== date
   const targetDay = useQuery({ ...bookingQueries.list(draft.date), enabled: targetEnabled })
   const targetBookings = draft.date === date ? bookings : (targetDay.data ?? [])

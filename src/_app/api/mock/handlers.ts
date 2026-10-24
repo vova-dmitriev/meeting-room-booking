@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from "msw"
-import { DemoNow, BookingError, validateBooking, type Booking, type BookingInput } from "@/entities/booking"
+import { BookingError, validateBooking, type Booking, type BookingInput } from "@/entities/booking"
 import { PreviewState } from "@/shared/config"
+import { clock } from "@/shared/lib/clock"
 import { seedBookings } from "./fixtures"
 import { createI18n } from "@/shared/lib/i18n"
 import { HttpStatus } from "@/shared/api"
@@ -8,7 +9,7 @@ import { MockLatency, MockBooking, MockErrorCode } from "./config"
 
 const t = createI18n().t
 
-export function createHandlers(origin: string, scenario: PreviewState = PreviewState.Default) {
+export function createHandlers(origin: string, scenario: PreviewState = PreviewState.Default, now: () => Date = () => clock.now()) {
   let bookings: Booking[] = scenario === PreviewState.Empty ? [] : structuredClone(seedBookings)
   let pendingConflict = scenario === PreviewState.Conflict
 
@@ -19,6 +20,14 @@ export function createHandlers(origin: string, scenario: PreviewState = PreviewS
     if (id && !bookings.some((booking) => booking.id === id))
       return HttpResponse.json({ code: MockErrorCode.NotFound }, { status: HttpStatus.NotFound })
 
+    const errors = validateBooking(input, { bookings, now: now(), excludeId: id })
+
+    if (errors.length)
+      return HttpResponse.json(
+        { code: errors[0] },
+        { status: errors[0] === BookingError.Conflict ? HttpStatus.Conflict : HttpStatus.BadRequest },
+      )
+
     if (pendingConflict) {
       pendingConflict = false
       bookings.push({ ...input, id: MockBooking.ConcurrentId, title: t("demo.meetings.interview") })
@@ -26,13 +35,6 @@ export function createHandlers(origin: string, scenario: PreviewState = PreviewS
       return HttpResponse.json({ code: MockErrorCode.Conflict }, { status: HttpStatus.Conflict })
     }
 
-    const errors = validateBooking(input, { bookings, now: new Date(DemoNow), excludeId: id })
-
-    if (errors.length)
-      return HttpResponse.json(
-        { code: errors[0] },
-        { status: errors[0] === BookingError.Conflict ? HttpStatus.Conflict : HttpStatus.BadRequest },
-      )
     const booking = { ...input, id: id ?? crypto.randomUUID(), host: t("demo.meetings.hostThree"), people: MockBooking.DefaultPeople }
 
     bookings = [...bookings.filter((item) => item.id !== booking.id), booking]
