@@ -1,4 +1,5 @@
 import { resolve } from "node:path"
+import { assertCommitBranch } from "./branch.mjs"
 import { cancellation } from "./cancellation.mjs"
 import { executeCommand } from "./runner.mjs"
 import { cleanEnvironment, git, withSnapshot } from "./snapshot.mjs"
@@ -13,7 +14,14 @@ try {
   }
 
   const root = mode === "staged" ? git(["rev-parse", "--show-toplevel"], process.cwd()).toString().trim() : resolve(process.cwd())
+
+  if (mode === "staged") {
+    assertCommitBranch(root)
+  }
+
   const environment = { ...cleanEnvironment(), CI: "1", NEXT_TELEMETRY_DISABLED: "1", STORYBOOK_DISABLE_TELEMETRY: "1" }
+
+  if (mode === "staged") delete environment.E2E_SELECTION
 
   await withSnapshot(root, mode, async (snapshot) => {
     process.stdout.write(`Pre-commit: validating the complete ${mode} snapshot in isolation.\n`)

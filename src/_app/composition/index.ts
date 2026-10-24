@@ -1,3 +1,3 @@
 export { AppProviders } from "./app-providers"
 
-export { DemoProviders } from "./demo-providers"
+export { AppBootstrap } from "./app-bootstrap"

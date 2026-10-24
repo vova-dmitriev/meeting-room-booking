@@ -2,6 +2,8 @@ import { expect, type Locator, type Page } from "@playwright/test"
 import { BookingTestId } from "@/entities/booking"
 import { EditorTestId } from "@/features/booking-editor"
 import { PageTestId } from "@/_pages/bookings"
+import { SchedulerTestId } from "@/widgets/booking-scheduler"
+import { BookingIntervals } from "../booking.fixtures"
 
 export async function openWorkspace(page: Page, story = "default") {
   await page.goto(`/iframe.html?id=preview-booking-workspace--${story}&viewMode=story`)
@@ -18,7 +20,17 @@ export async function byIdentity(rows: Locator, attribute: string, identity: str
   return rows.nth(index)
 }
 
-export async function fillBooking(page: Page, title: string, start = "10:00", end = "11:00") {
+export async function fillBooking(
+  page: Page,
+  title: string,
+  start: string = BookingIntervals.Default.start,
+  end: string = BookingIntervals.Default.end,
+) {
+  if (!(await page.getByTestId(EditorTestId.Form).isVisible())) {
+    await page.getByTestId(SchedulerTestId.Create).click()
+  }
+
+  await expect(page.getByTestId(EditorTestId.Form)).toBeVisible()
   await page.getByTestId(EditorTestId.Title).fill(title)
   await page.getByTestId(EditorTestId.Start).fill(start)
   await page.getByTestId(EditorTestId.End).fill(end)

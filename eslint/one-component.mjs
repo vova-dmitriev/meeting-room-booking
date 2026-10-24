@@ -1,8 +1,16 @@
 import namedProps from "./named-props.mjs"
 import hookCallbackBody from "./hook-callback-body.mjs"
+import testDataConstants from "./test-data-constants.mjs"
+import businessDataConstants from "./business-data-constants/index.mjs"
+import fileConventions from "./file-conventions/index.mjs"
+import rootTestIds from "./root-test-ids/index.mjs"
 
 const config = {
   rules: {
+    "root-test-ids": rootTestIds,
+    "file-conventions": fileConventions,
+    "business-data-constants": businessDataConstants,
+    "test-data-constants": testDataConstants,
     "hook-callback-body": hookCallbackBody,
     "named-props": namedProps,
     "one-component": {

@@ -2,6 +2,7 @@ name: Quality
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -9,12 +10,15 @@ permissions:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   complete-snapshot:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    outputs:
+      e2e_selection: ${{ steps.e2e.outputs.selection }}
+      e2e_mode: ${{ steps.e2e.outputs.mode }}
     env:
       CI: "1"
       VALIDATION_CONCURRENCY: "2"
@@ -25,6 +29,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up the shared Node baseline
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -32,6 +37,11 @@ jobs:
           cache: npm
       - name: Install locked browser tooling
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Select affected Playwright scenarios
+        id: e2e
+        run: node scripts/e2e/plan.mjs
+        env:
+          E2E_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       - name: Install the selected Chrome channel and system dependencies
         run: node node_modules/@playwright/test/cli.js install --with-deps chrome
       - name: Install checksum-verified Gitleaks 8.30.1
@@ -52,3 +62,95 @@ jobs:
           docker pull semgrep/semgrep@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
       - name: Run the complete local and pre-commit validation graph
         run: npm run check:working-copy
+        env:
+          E2E_SELECTION: ${{ steps.e2e.outputs.selection }}
+
+  deploy:
+    needs: complete-snapshot
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.complete-snapshot.outputs.e2e_mode != 'none'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    outputs:
+      app_url: ${{ steps.app.outputs.url }}
+      storybook_url: ${{ steps.storybook.outputs.url }}
+    env:
+      VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+      VERCEL_TELEMETRY_DISABLED: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+      STORYBOOK_DISABLE_TELEMETRY: "1"
+      VALIDATION_TEST_WORKERS: "1"
+    steps:
+      - name: Check out validated main
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build the static Storybook
+        run: npm run build-storybook
+      - name: Deploy the Next application
+        id: app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_APP_PROJECT_ID }}
+        run: |
+          test -n "$VERCEL_TOKEN" || { echo "Configure the VERCEL_TOKEN Actions secret." >&2; exit 1; }
+          npx --yes vercel@65.2.0 deploy --non-interactive --prod --yes \
+            --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_SLUG" \
+            --token "$VERCEL_TOKEN" --json > "$RUNNER_TEMP/app-deployment.json"
+          node scripts/deployment/output.mjs "$RUNNER_TEMP/app-deployment.json" >> "$GITHUB_OUTPUT"
+      - name: Deploy the Storybook
+        id: storybook
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_STORYBOOK_PROJECT_ID }}
+        run: |
+          npx --yes vercel@65.2.0 deploy --non-interactive --cwd storybook-static --prod --yes \
+            --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_SLUG" \
+            --token "$VERCEL_TOKEN" --json > "$RUNNER_TEMP/storybook-deployment.json"
+          node scripts/deployment/output.mjs "$RUNNER_TEMP/storybook-deployment.json" >> "$GITHUB_OUTPUT"
+
+  post-deploy-e2e:
+    needs: [deploy, complete-snapshot]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DEPLOYMENT_URL: ${{ needs.deploy.outputs.app_url }}
+      STORYBOOK_DEPLOYMENT_URL: ${{ needs.deploy.outputs.storybook_url }}
+      E2E_SELECTION: ${{ needs.complete-snapshot.outputs.e2e_selection }}
+    steps:
+      - name: Check out deployed source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install locked browser tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chrome and system dependencies
+        run: node node_modules/@playwright/test/cli.js install --with-deps chrome
+      - name: Test the public application and Storybook
+        run: npm run test:deployment -- --workers=1 --forbid-only --reporter=github,html
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/application
+      - name: Run affected booking scenarios on the published Storybook
+        run: node scripts/e2e/staging.mjs
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/business-rules
+      - name: Upload browser reports and failure traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-e2e
+          path: |
+            playwright-report
+            test-results

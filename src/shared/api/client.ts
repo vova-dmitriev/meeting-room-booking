@@ -1,4 +1,5 @@
 import { ApiError } from "./api-error"
+import { HttpStatus } from "./http-status"
 
 export const apiClient = {
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api",
@@ -31,7 +32,7 @@ export const apiClient = {
 
     if (!response.ok) throw new ApiError(response.status, response.statusText)
 
-    if (response.status === 204) return undefined as T
+    if (response.status === HttpStatus.NoContent) return undefined as T
 
     return response.json() as Promise<T>
   },

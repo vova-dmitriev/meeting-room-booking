@@ -2,6 +2,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/shared/lib/cn"
 import { Slot } from "radix-ui"
+import { PrimitiveTestId } from "../test-ids"
 
 const buttonVariants = cva(
   cn(
@@ -61,6 +62,7 @@ function Button({
 
   return (
     <Comp
+      data-testid={PrimitiveTestId.Button}
       data-slot="button"
       data-variant={variant}
       data-size={size}

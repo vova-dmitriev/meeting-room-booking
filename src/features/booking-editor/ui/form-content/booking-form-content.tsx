@@ -4,7 +4,6 @@ import type { BookingFormProps } from "@/features/booking-editor/model/types"
 import { EditorTestId } from "@/features/booking-editor/config/test-ids"
 import { BookingFields } from "../booking-fields/booking-fields"
 import { BookingActions } from "../booking-actions/booking-actions"
-import { BookingPolicy } from "../booking-policy/booking-policy"
 import { BookingFormHeading } from "../booking-form-heading/booking-form-heading"
 
 export function BookingFormContent(props: BookingFormProps) {
@@ -12,13 +11,13 @@ export function BookingFormContent(props: BookingFormProps) {
   const part = { model, props }
 
   return (
-    <Surface className="overflow-hidden">
-      <form data-testid={EditorTestId.Form} onSubmit={model.submit} noValidate className="p-5 sm:p-6">
-        <BookingFormHeading {...part} />
+    <Surface data-testid={EditorTestId.Content} className={props.hideHeading ? "border-0" : "overflow-hidden"}>
+      <form data-testid={EditorTestId.Form} onSubmit={model.submit} noValidate className={props.hideHeading ? "" : "p-5 sm:p-6"}>
+        {props.hideHeading ? null : <BookingFormHeading {...part} />}
         <BookingFields {...part} />
         <BookingActions {...part} />
       </form>
-      <BookingPolicy />
+      {props.actions}
     </Surface>
   )
 }

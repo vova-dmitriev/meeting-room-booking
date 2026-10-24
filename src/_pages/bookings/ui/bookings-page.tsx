@@ -3,13 +3,12 @@
 import { BookingScheduler } from "@/widgets/booking-scheduler"
 import type { BookingsPageProps } from "../model/types"
 import { WorkspaceShell } from "./workspace-shell/workspace-shell"
-import { PageIntro } from "./page-intro/page-intro"
+import { PageTestId } from "../config/test-ids"
 
 export function BookingsPage({ scenario }: BookingsPageProps) {
   return (
     <WorkspaceShell>
-      <PageIntro />
-      <div id="room">
+      <div id="room" data-testid={PageTestId.Room}>
         <BookingScheduler scenario={scenario} />
       </div>
     </WorkspaceShell>

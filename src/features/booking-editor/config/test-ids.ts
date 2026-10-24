@@ -1,4 +1,10 @@
 export const EditorTestId = {
+  Actions: "booking-editor-actions",
+  Fields: "booking-editor-fields",
+  TimeFields: "booking-time-fields",
+  TimeError: "booking-time-error",
+  Heading: "booking-editor-heading",
+  Content: "booking-editor-content",
   Form: "booking-editor",
   Title: "booking-title",
   Date: "booking-date",

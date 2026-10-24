@@ -1,4 +1,31 @@
 export const ru = {
+  bootstrap: {
+    loadingTitle: "Запускаем приложение",
+    loadingDescription: "Подключаем демо-данные и готовим расписание.",
+    errorTitle: "Не удалось запустить приложение",
+    errorDescription: "Проверьте соединение и настройки браузера, затем повторите запуск.",
+    retry: "Повторить запуск",
+  },
+  dayFeed: {
+    title: "Расписание дня",
+    hint: "Рабочий день с 09:00 до 18:00",
+    fullDay: "Весь день свободен",
+    free: "Свободно",
+    create: "Забронировать",
+    ended: "День завершён",
+    elapsed: "Время прошло",
+    tooShort: "Меньше 30 минут",
+    edit: "Изменить",
+    untitled: "Без названия",
+    occupied: "Встреча",
+    selectInterval: "Забронировать с {{start}} до {{end}}",
+    editMeeting: "Изменить встречу «{{title}}»",
+    demoMeeting: "Планирование спринта и обсуждение задач команды на следующую неделю",
+  },
+  metadata: {
+    title: "Бронирование переговорной",
+    description: "Расписание переговорной: создание, изменение и отмена бронирований.",
+  },
   common: {
     brand: "gather",
     optional: "необязательно",
@@ -10,6 +37,7 @@ export const ru = {
     retry: "Попробовать снова",
     theme: "Переключить тему",
     close: "Закрыть",
+    notifications: "Уведомления",
   },
   navigation: {
     workspace: "Рабочее пространство",
@@ -64,6 +92,7 @@ export const ru = {
     timezone: "Время офиса · UTC+3",
   },
   room: {
+    type: "Переговорная",
     name: "Атлас",
     label: "Переговорная 03",
     description: "Тихое место для больших планов",
@@ -91,6 +120,7 @@ export const ru = {
       untitled: "Без названия",
     },
     form: {
+      createAction: "Забронировать",
       createTitle: "Новое бронирование",
       editTitle: "Редактирование",
       hint: "Зарезервируйте время для своей команды.",
@@ -107,6 +137,8 @@ export const ru = {
       sending: "Бронируем…",
     },
     delete: {
+      success: "Встреча удалена",
+      error: "Не удалось удалить встречу. Попробуйте ещё раз или отмените удаление.",
       title: "Удалить встречу?",
       description: "Это время снова станет доступным для команды.",
       confirm: "Да, удалить",
@@ -132,6 +164,7 @@ export const ru = {
       },
       success: {
         title: "Комната забронирована",
+        updatedTitle: "Изменения сохранены",
         description: "Встреча появилась в расписании. До встречи!",
       },
       loading: "Загружаем расписание",
@@ -148,6 +181,9 @@ export const ru = {
     },
   },
   calendar: {
+    previousDay: "Предыдущий день",
+    nextDay: "Следующий день",
+    selectDate: "Дата расписания",
     weekdays: {
       monday: "Пн",
       tuesday: "Вт",

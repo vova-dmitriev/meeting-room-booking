@@ -1,7 +1,7 @@
 export const PageTestId = {
   Root: "bookings-page",
-  Sidebar: "workspace-sidebar",
+  Room: "bookings-room",
+  Footer: "bookings-footer",
   Theme: "theme-toggle",
   Content: "booking-content",
-  Nav: "workspace-nav",
 } as const

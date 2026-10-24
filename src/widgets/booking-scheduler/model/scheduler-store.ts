@@ -1,21 +1,34 @@
 import { createStore } from "zustand/vanilla"
-import { DemoDate, type Booking } from "@/entities/booking"
+import { BookingDraftDefaults, DemoDate, type Booking } from "@/entities/booking"
 
 export interface SchedulerState {
   date: string
   editing?: Booking
+  editorOpen: boolean
+  editorSession: number
+  interval?: { start: string; end: string }
+  createBooking: (start?: string, end?: string) => void
   selectDate: (date: string) => void
   startEditing: (booking: Booking) => void
   cancelEditing: () => void
   bookingDeleted: (id: string) => void
+  completeEditor: (session: number, date: string) => void
 }
 
 export function createSchedulerStore() {
   return createStore<SchedulerState>()((set) => ({
     date: DemoDate,
-    selectDate: (date) => set({ date, editing: undefined }),
-    startEditing: (editing) => set({ editing }),
-    cancelEditing: () => set({ editing: undefined }),
-    bookingDeleted: (id) => set((state) => (state.editing?.id === id ? { editing: undefined } : state)),
+    editorOpen: false,
+    editorSession: 0,
+    selectDate: (date) => set({ date, editing: undefined, editorOpen: false, interval: undefined }),
+    startEditing: (editing) => set((state) => ({ editing, editorOpen: true, interval: undefined, editorSession: state.editorSession + 1 })),
+    createBooking: (start = BookingDraftDefaults.start, end = BookingDraftDefaults.end) =>
+      set((state) => ({ editing: undefined, editorOpen: true, interval: { start, end }, editorSession: state.editorSession + 1 })),
+    cancelEditing: () => set({ editing: undefined, editorOpen: false, interval: undefined }),
+    bookingDeleted: (id) => set((state) => (state.editing?.id === id ? { editing: undefined, editorOpen: false } : state)),
+    completeEditor: (session, date) =>
+      set((state) =>
+        state.editorOpen && state.editorSession === session ? { date, editing: undefined, editorOpen: false, interval: undefined } : state,
+      ),
   }))
 }

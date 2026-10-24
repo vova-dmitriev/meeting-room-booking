@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve } from "node:path"
 const generatedDirectories = new Set([
   ".git",
   ".codegraph",
+  ".vercel",
   "node_modules",
   ".next",
   "out",

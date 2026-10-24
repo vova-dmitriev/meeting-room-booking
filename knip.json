@@ -6,14 +6,17 @@
     "vitest*.config.ts",
     "steiger.config.mjs",
     "tests/**/*.ts",
+    "**/__spec__/**/*.test.{ts,tsx}",
+    "eslint/root-test-ids/__spec__/root-test-ids.fixtures.ts",
     "scripts/quality/*.mjs",
+    "scripts/e2e/{plan,staging}.mjs",
     "scripts/validation/*.mjs"
   ],
   "project": [
     "app/**/*.{ts,tsx}",
     "src/**/*.{ts,tsx,css,mdx}",
-    "eslint/**/*.mjs",
-    "scripts/**/*.mjs",
+    "eslint/**/*.{mjs,ts,tsx}",
+    "scripts/**/*.{mjs,ts,tsx}",
     "tests/**/*.ts",
     "*.config.{ts,mjs}",
     ".storybook/*.{ts,tsx}"
