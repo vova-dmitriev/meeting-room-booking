@@ -1,5 +1,6 @@
 import { createStore } from "zustand/vanilla"
-import { BookingDraftDefaults, DemoDate, type Booking } from "@/entities/booking"
+import { clock, roomTime } from "@/shared/lib/clock"
+import { BookingDraftDefaults, type Booking } from "@/entities/booking"
 
 export interface SchedulerState {
   date: string
@@ -15,9 +16,9 @@ export interface SchedulerState {
   completeEditor: (session: number, date: string) => void
 }
 
-export function createSchedulerStore() {
+export function createSchedulerStore(date = roomTime(clock.now()).date) {
   return createStore<SchedulerState>()((set) => ({
-    date: DemoDate,
+    date,
     editorOpen: false,
     editorSession: 0,
     selectDate: (date) => set({ date, editing: undefined, editorOpen: false, interval: undefined }),

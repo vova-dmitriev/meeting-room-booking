@@ -1,0 +1,23 @@
+export const ClockFixture = {
+  ClientTimezone: "Asia/Tokyo",
+  Now: "2026-10-24T11:23:01+03:00",
+  Today: "2026-10-24",
+  Past: "2026-10-23",
+  RoundedStart: "11:30",
+  SuggestedEnd: "12:30",
+  PastStart: "11:20",
+  PastEnd: "12:00",
+  EarlyToday: "2026-10-24T00:23:01+03:00",
+  AfterBoundary: "2026-10-24T11:30:01+03:00",
+  NextStart: "11:40",
+  MidnightBefore: "2026-10-24T23:59:00+03:00",
+  MidnightAfter: "2026-10-25T00:00:01+03:00",
+  Tomorrow: "2026-10-25",
+  Opening: "09:00",
+  OpeningEnd: "10:00",
+  EmptyBookings: 0,
+  Tick: 1000,
+  ApiPath: "/api/bookings",
+} as const
+
+export const BrowserTimezones = ["UTC", "America/Los_Angeles", ClockFixture.ClientTimezone] as const

@@ -29,7 +29,7 @@ describe("chronological day feed", () => {
   })
 
   it.each(dayFeedFixture.roundingCases)("rounds available starts up from $time to $start", ({ time, start, fullDay }) => {
-    const feed = getDayFeed(date, [], new Date(`${date}T${time}`))
+    const feed = getDayFeed(date, [], new Date(`${date}T${time}${dayFeedFixture.fixtureOffset}`))
     const actionable = feed.intervals.filter((interval) => interval.kind === "free" && interval.selection)
 
     expect(actionable).toHaveLength(1)
@@ -46,7 +46,7 @@ describe("chronological day feed", () => {
   })
 
   it.each(dayFeedFixture.editingCases)("only offers editing before or at a meeting start, at %s", (time, editable) => {
-    const feed = getDayFeed(date, [meeting], new Date(`${date}T${time}`))
+    const feed = getDayFeed(date, [meeting], new Date(`${date}T${time}${dayFeedFixture.fixtureOffset}`))
 
     expect(feed.intervals.find((interval) => interval.kind === "occupied")).toMatchObject({ editable })
   })
@@ -60,7 +60,7 @@ describe("chronological day feed", () => {
   })
 
   it.each(dayFeedFixture.finalSlotCases)("offers no action shorter than thirty minutes at %s", (time, selection) => {
-    const feed = getDayFeed(date, [], new Date(`${date}T${time}`))
+    const feed = getDayFeed(date, [], new Date(`${date}T${time}${dayFeedFixture.fixtureOffset}`))
 
     expect(feed.intervals.at(-1)).toMatchObject({ kind: "free", selection })
   })

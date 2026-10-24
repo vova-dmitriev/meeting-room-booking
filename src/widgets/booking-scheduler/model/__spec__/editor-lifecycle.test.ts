@@ -6,7 +6,7 @@ const { booking, nextDate } = schedulerFixture
 
 describe("editor opening sessions", () => {
   it("assigns a new session to every create and edit opening, even with the same booking and date", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
     const sessions = [store.getState().editorSession]
 
     store.getState().createBooking()
@@ -23,7 +23,7 @@ describe("editor opening sessions", () => {
   })
 
   it("ignores both navigation and closing from a previously dismissed session", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
 
     store.getState().createBooking()
     const originalSession = store.getState().editorSession
@@ -40,7 +40,7 @@ describe("editor opening sessions", () => {
   })
 
   it("atomically completes the current session and rejects completion after it has closed", () => {
-    const store = createSchedulerStore()
+    const store = createSchedulerStore(booking.date)
 
     store.getState().startEditing(booking)
     const session = store.getState().editorSession

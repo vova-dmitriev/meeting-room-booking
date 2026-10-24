@@ -1,6 +1,6 @@
 const Calendar = { WeekLength: 7, SundayOffset: 6, Padding: 2, Zero: "0", Anchor: "T12:00:00" } as const
 
-export function formatDate(date: Date): string {
+function formatDate(date: Date): string {
   return [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(Calendar.Padding, Calendar.Zero),

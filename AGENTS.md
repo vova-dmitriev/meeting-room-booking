@@ -4,6 +4,7 @@
 - One component per file, named props in adjacent types, maximum 200 lines including blanks, maximum six non-index files per FSD directory.
 - Components render; interactions and state live in model hooks. HTTP server state belongs to TanStack Query; no automatic mutation retries.
 - Use typed i18next/react-i18next. Only Russian currently ships; keep all product copy in the resource dictionary.
+- The room uses IANA `Europe/Moscow`. Production uses the live shared clock; derive room dates and elapsed time through `roomTime`, never browser-local hour getters. Revalidate against fresh time at submission and in the mock API. Inject fixed clocks only into isolated tests/stories; do not freeze application bootstrap. Preserve the selected day across midnight and update its availability.
 - Theme colors belong to _app/styles/tokens.css. Tailwind utilities consume semantic tokens. Support light and dark modes.
 - Every component root and interactive/asserted element has a static imported test ID. Repeated rows use data-* identity attributes.
 - Enforce physical component-root IDs and explicit test-ID provenance with the AST-based `frontend/root-test-ids` rule. Resolve imported constants through aliases/public barrels; reject runtime/local IDs and unverifiable rendered roots. Keep provider/headless composition exemptions tied to actual DOM ownership. Regression tests cover these contracts in the mandatory pre-commit unit suite.

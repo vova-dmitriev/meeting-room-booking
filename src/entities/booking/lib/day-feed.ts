@@ -2,8 +2,8 @@ import type { Booking } from "../model/types"
 import { BookingRule } from "../config/booking-values"
 import { parseTime } from "./time"
 import type { DayFeedModel, FreeInterval } from "./day-feed.types"
-import { formatMinutes, TimeUnit } from "@/shared/lib/time"
-import { formatDate } from "@/shared/lib/date"
+import { formatMinutes } from "@/shared/lib/time"
+import { roomTime } from "@/shared/lib/clock"
 
 function freeIntervals(start: number, end: number, availableFrom: number): FreeInterval[] {
   if (end <= start) return []
@@ -27,14 +27,7 @@ function freeIntervals(start: number, end: number, availableFrom: number): FreeI
 }
 
 export function getDayFeed(date: string, bookings: Booking[], now: Date): DayFeedModel {
-  const today = formatDate(now)
-
-  const minutes =
-    now.getHours() * TimeUnit.MinutesPerHour +
-    now.getMinutes() +
-    now.getSeconds() / TimeUnit.SecondsPerMinute +
-    now.getMilliseconds() / TimeUnit.MillisecondsPerMinute
-
+  const { date: today, minutes } = roomTime(now)
   const past = date < today || (date === today && minutes >= BookingRule.End)
   const availableFrom = date === today ? Math.ceil(minutes / BookingRule.Step) * BookingRule.Step : BookingRule.Start
 
