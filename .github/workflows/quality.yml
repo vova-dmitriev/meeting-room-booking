@@ -302,7 +302,9 @@ jobs:
 
   deploy:
     needs: complete-snapshot
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.complete-snapshot.outputs.e2e_mode != 'none'
+    # Manual runs re-verify the release after secret or project setting changes; branch
+    # runs stay excluded because promotion switches production to the checked-out ref.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name != 'pull_request' && needs.complete-snapshot.outputs.e2e_mode != 'none'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
