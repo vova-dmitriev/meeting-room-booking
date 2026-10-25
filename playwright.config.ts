@@ -1,5 +1,4 @@
 import { defineConfig } from "@playwright/test"
-import { protectionBypassState } from "./tests/deployment/bypass"
 
 const port = Number(process.env.STORYBOOK_PORT ?? 6006)
 const applicationPort = 3100
@@ -8,7 +7,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   testIgnore: ["**/visual/**"],
-  use: { baseURL: `http://127.0.0.1:${port}`, channel: "chrome", storageState: protectionBypassState() },
+  use: { baseURL: `http://127.0.0.1:${port}`, channel: "chrome" },
   projects: [
     { name: "desktop", use: { viewport: { width: 1440, height: 1000 } } },
     { name: "tablet", use: { viewport: { width: 768, height: 1024 }, hasTouch: true } },
