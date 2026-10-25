@@ -40,9 +40,23 @@ describe("E2E planner CLI", () => {
     const lines = readFileSync(output, "utf8").trim().split("\n")
 
     expect(result.status).toBe(0)
-    expect(result.stdout).toBe("")
+    expect(JSON.parse(result.stdout)).toMatchObject({ mode: "selected", files: [firstSpec] })
     expect(JSON.parse(lines[0].slice("selection=".length))).toMatchObject({ mode: "selected", files: [firstSpec] })
     expect(lines[1]).toBe("mode=selected")
+  })
+
+  it("writes a human-readable step summary with the selected files", () => {
+    const output = join(fixture.root, ".git", "github-output")
+    const summary = join(fixture.root, ".git", "step-summary")
+
+    fixture.write(helperFile, changedHelper)
+    const result = execute({ GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary })
+    const text = readFileSync(summary, "utf8")
+
+    expect(result.status).toBe(0)
+    expect(text).toContain("E2E selection:")
+    expect(text).toContain("selected")
+    expect(text).toContain(firstSpec)
   })
 
   it("fails without exposing raw dependency errors", () => {
