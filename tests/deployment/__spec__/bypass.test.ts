@@ -15,6 +15,9 @@ const BypassFixture = {
   StorybookHost: "meeting-room-booking-storybook-abc123-team.vercel.app",
   IssuedCookieValue: "vercel-issued-bypass-cookie",
   ForbiddenStatus: 403,
+  OkStatus: 200,
+  SsoHost: "vercel.com",
+  SsoUrl: "https://vercel.com/sso-api?url=blocked",
 } as const
 
 const OriginalEnvironment = { ...process.env }
@@ -39,13 +42,17 @@ afterEach(() => {
 })
 
 describe("Vercel protection bypass state", () => {
-  it("completes the documented handshake once per candidate origin", async () => {
+  it("completes the documented handshake once per protected candidate origin", async () => {
     process.env.DEPLOYMENT_URL = BypassFixture.AppUrl
     process.env.VERCEL_APP_BYPASS_SECRET = BypassFixture.AppSecret
     process.env.STORYBOOK_DEPLOYMENT_URL = BypassFixture.StorybookUrl
     process.env.VERCEL_STORYBOOK_BYPASS_SECRET = BypassFixture.StorybookSecret
 
-    apiContext.get.mockResolvedValue({ status: () => 200 })
+    apiContext.get.mockResolvedValue({
+      status: () => BypassFixture.OkStatus,
+      ok: () => true,
+      url: () => BypassFixture.AppUrl,
+    })
 
     apiContext.storageState.mockResolvedValue({
       cookies: [issuedCookie(BypassFixture.AppHost), issuedCookie(BypassFixture.StorybookHost)],
@@ -74,14 +81,53 @@ describe("Vercel protection bypass state", () => {
     expect(apiContext.dispose).toHaveBeenCalled()
   })
 
-  it("fails loudly when no bypass cookie is issued", async () => {
+  it("runs without a bypass when a production alias is public", async () => {
     process.env.DEPLOYMENT_URL = BypassFixture.AppUrl
     process.env.VERCEL_APP_BYPASS_SECRET = BypassFixture.AppSecret
 
-    apiContext.get.mockResolvedValue({ status: () => BypassFixture.ForbiddenStatus })
+    apiContext.get.mockResolvedValue({
+      status: () => BypassFixture.OkStatus,
+      ok: () => true,
+      url: () => BypassFixture.AppUrl,
+    })
+
     apiContext.storageState.mockResolvedValue({ cookies: [] })
 
-    await expect(protectionBypassState()).rejects.toThrow("did not issue a bypass cookie")
+    const state = await protectionBypassState()
+
+    expect(state?.cookies).toHaveLength(0)
+    expect(apiContext.dispose).toHaveBeenCalled()
+  })
+
+  it("fails loudly when a challenge redirects away unanswered", async () => {
+    process.env.DEPLOYMENT_URL = BypassFixture.AppUrl
+    process.env.VERCEL_APP_BYPASS_SECRET = BypassFixture.AppSecret
+
+    apiContext.get.mockResolvedValue({
+      status: () => BypassFixture.OkStatus,
+      ok: () => true,
+      url: () => BypassFixture.SsoUrl,
+    })
+
+    apiContext.storageState.mockResolvedValue({ cookies: [issuedCookie(BypassFixture.SsoHost)] })
+
+    await expect(protectionBypassState()).rejects.toThrow("did not admit the bypass")
+    expect(apiContext.dispose).toHaveBeenCalled()
+  })
+
+  it("fails loudly when protection rejects the secret", async () => {
+    process.env.DEPLOYMENT_URL = BypassFixture.AppUrl
+    process.env.VERCEL_APP_BYPASS_SECRET = BypassFixture.AppSecret
+
+    apiContext.get.mockResolvedValue({
+      status: () => BypassFixture.ForbiddenStatus,
+      ok: () => false,
+      url: () => BypassFixture.AppUrl,
+    })
+
+    apiContext.storageState.mockResolvedValue({ cookies: [] })
+
+    await expect(protectionBypassState()).rejects.toThrow("did not admit the bypass")
     expect(apiContext.dispose).toHaveBeenCalled()
   })
 

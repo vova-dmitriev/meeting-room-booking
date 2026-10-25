@@ -55,4 +55,30 @@ describe("required suite completion", () => {
     report.suites[0].specs[0].tests.pop()
     expect(() => assertPlaywrightReport(report)).toThrow("incomplete")
   })
+
+  it("accepts a shard covering fewer projects and still rejects an empty shard", () => {
+    const shard = {
+      errors: [],
+      stats: { expected: 1, unexpected: 0, skipped: 0, flaky: 0 },
+      suites: [
+        {
+          specs: [
+            {
+              tests: [
+                {
+                  projectName: "tablet",
+                  expectedStatus: "passed",
+                  status: "expected",
+                  results: [{ status: "passed" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    expect(() => assertPlaywrightReport(shard, { requireAllProjects: false })).not.toThrow()
+    expect(() => assertPlaywrightReport({ ...shard, suites: [] }, { requireAllProjects: false })).toThrow("incomplete")
+  })
 })
