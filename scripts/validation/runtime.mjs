@@ -109,7 +109,7 @@ try {
 
   const resultReport = JSON.parse(readFileSync(report, "utf8"))
 
-  assertPlaywrightReport(resultReport)
+  assertPlaywrightReport(resultReport, { requireAllProjects: shardCount === 1 })
   assertSelectedE2eFiles(resultReport, selection)
 } catch (error) {
   process.stderr.write(`${error.message}\n`)

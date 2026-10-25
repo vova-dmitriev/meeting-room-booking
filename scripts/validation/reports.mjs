@@ -19,19 +19,23 @@ function playwrightCases(suites) {
   return suites.flatMap((suite) => [...(suite.specs ?? []).flatMap((spec) => spec.tests ?? []), ...playwrightCases(suite.suites ?? [])])
 }
 
-export function assertPlaywrightReport(report) {
+// Sharded runs receive a subset of the matrix per job: Playwright splits by file, so a
+// shard may cover fewer than all three device projects while their union stays complete.
+export function assertPlaywrightReport(report, { requireAllProjects = true } = {}) {
   const cases = playwrightCases(report.suites ?? [])
   const projects = new Set(cases.map((test) => test.projectName))
 
+  const covered = requireAllProjects ? ["mobile", "tablet", "desktop"].every((project) => projects.has(project)) : projects.size > 0
+
   if (
     cases.length === 0 ||
+    !covered ||
     !(report.stats?.expected > 0) ||
     report.stats.unexpected !== 0 ||
     report.stats.skipped !== 0 ||
     report.stats.flaky !== 0 ||
     !Array.isArray(report.errors) ||
     report.errors.length > 0 ||
-    ["mobile", "tablet", "desktop"].some((project) => !projects.has(project)) ||
     cases.some(
       (test) =>
         test.status !== "expected" ||
@@ -40,6 +44,10 @@ export function assertPlaywrightReport(report) {
         test.results.some((result) => result.status !== "passed"),
     )
   ) {
-    throw new Error("Required Playwright matrix incomplete: all three projects must pass without skipped or flaky cases")
+    const scope = requireAllProjects
+      ? "all three projects must pass without skipped or flaky cases"
+      : "each shard must pass without skipped or flaky cases and cover at least one project"
+
+    throw new Error(`Required Playwright matrix incomplete: ${scope}`)
   }
 }
