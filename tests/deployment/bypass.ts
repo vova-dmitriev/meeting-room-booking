@@ -24,9 +24,11 @@ function bypassTarget({ url, secret }: BypassCandidate): BypassTarget | undefine
   return { url, secret }
 }
 
-// Vercel Protection Bypass for Automation handshake: the secret rides the documented
-// x-vercel-protection-bypass header, and x-vercel-set-bypass-cookie makes Vercel issue
-// its own bypass cookie for the origin. The cookie's name and shape stay Vercel's.
+// Vercel Protection Bypass for Automation: protected origins answer the documented
+// header handshake by issuing their own bypass cookie, whose name and shape stay Vercel's.
+// Production aliases under Standard Protection are public and answer 200 without a
+// challenge, so they need no bypass. Only an unanswered challenge (the SSO redirect)
+// would leave the smoke suite staring at a login page and fails the release loudly.
 async function bypassCookies(target: BypassTarget, api: APIRequestContext): Promise<Cookie[]> {
   const origin = new URL(target.url)
 
@@ -39,11 +41,16 @@ async function bypassCookies(target: BypassTarget, api: APIRequestContext): Prom
 
   const issued = (await api.storageState()).cookies.filter((cookie) => cookie.domain.replace(/^\./, "") === origin.hostname)
 
-  if (!issued.length) {
-    throw new Error(`Vercel deployment protection did not issue a bypass cookie for ${origin.hostname} (HTTP ${response.status()})`)
-  }
+  if (issued.length) return issued
 
-  return issued
+  const landed = new URL(response.url())
+
+  if (landed.hostname === origin.hostname && response.ok()) return []
+
+  throw new Error(
+    `Vercel deployment protection did not admit the bypass for ${origin.hostname} ` +
+      `(HTTP ${response.status()}, landed on ${landed.hostname})`,
+  )
 }
 
 // One secret per Vercel project, so each candidate origin completes its own handshake.

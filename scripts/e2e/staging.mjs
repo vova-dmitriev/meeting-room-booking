@@ -29,7 +29,7 @@ try {
       "--workers=1",
       "--forbid-only",
       "--fail-on-flaky-tests",
-      `--reporter=${process.env.GITHUB_ACTIONS ? "github" : "line"},html,json`,
+      `--reporter=${process.env.GITHUB_ACTIONS ? "list" : "line"},html,json`,
     ],
     {
       cwd: process.cwd(),

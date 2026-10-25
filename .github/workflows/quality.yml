@@ -17,7 +17,6 @@ env:
   CI: "1"
   NEXT_TELEMETRY_DISABLED: "1"
   STORYBOOK_DISABLE_TELEMETRY: "1"
-  VALIDATION_TEST_WORKERS: "1"
 
 jobs:
   impact:
@@ -199,13 +198,19 @@ jobs:
           retention-days: 1
 
   e2e:
-    name: Affected Playwright scenarios
     needs: [impact, builds]
     if: needs.impact.outputs.mode != 'none'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: Affected Playwright scenarios (${{ matrix.shard }}/4)
     env:
       E2E_SELECTION: ${{ needs.impact.outputs.selection }}
+      E2E_SHARDS: "4"
+      E2E_SHARD: ${{ matrix.shard }}/4
     steps:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -235,7 +240,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: affected-e2e-reports
+          name: affected-e2e-reports-${{ matrix.shard }}
           include-hidden-files: true
           path: |
             .superpowers/validation/reports

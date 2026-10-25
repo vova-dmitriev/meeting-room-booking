@@ -26,7 +26,7 @@ async function verify(candidates, stage) {
 
   if (!env.DEPLOYMENT_URL || !env.STORYBOOK_DEPLOYMENT_URL) throw new Error("Release verification URLs are required")
   console.log(`Verifying ${stage} before completing the release`)
-  await runCommand("npm", ["run", "test:deployment", "--", "--workers=1", "--forbid-only", "--reporter=github,html"], { env })
+  await runCommand("npm", ["run", "test:deployment", "--", "--workers=1", "--forbid-only", "--reporter=list,html"], { env })
 
   if (stage === "candidates") {
     env.PLAYWRIGHT_HTML_OUTPUT_DIR = "playwright-report/affected-candidates"

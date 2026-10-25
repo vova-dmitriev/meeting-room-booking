@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { writeFileSync, readFileSync, mkdirSync, rmSync } from "node:fs"
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { createServer } from "node:net"
 import { join } from "node:path"
 import { cleanEnvironment } from "./snapshot.mjs"
@@ -11,6 +11,28 @@ const selection = readE2eSelection(process.env.E2E_SELECTION)
 process.stdout.write(`Playwright E2E selection: ${selection.mode} (${selection.reason})\n`)
 
 if (selection.mode === "none") process.exit(0)
+
+// CI shards the unfiltered matrix across jobs; smaller impact-driven selections stay on
+// one job because Playwright splits shards by file and empty shards would report nothing.
+function specFileCount() {
+  const root = join(process.cwd(), "tests/e2e")
+
+  return readdirSync(root, { recursive: true }).filter(
+    (file) => typeof file === "string" && file.endsWith(".spec.ts") && !file.startsWith("visual/"),
+  ).length
+}
+
+const requestedShards = Number(process.env.E2E_SHARDS ?? 1)
+const shardCount = selection.mode === "all" ? Math.max(1, Math.min(requestedShards, specFileCount())) : 1
+const shardIndex = Number((process.env.E2E_SHARD ?? "1").split("/")[0])
+
+if (!Number.isInteger(shardIndex) || shardIndex < 1) throw new Error(`Invalid E2E shard index: ${process.env.E2E_SHARD}`)
+
+if (shardIndex > shardCount) {
+  process.stdout.write(`Shard ${shardIndex} exceeds the ${shardCount}-shard split; nothing to run\n`)
+
+  process.exit(0)
+}
 
 const probes = [createServer(), createServer()]
 
@@ -69,9 +91,10 @@ try {
       ...e2eFileFilters(selection),
       "--config",
       config,
+      ...(shardCount > 1 ? [`--shard=${shardIndex}/${shardCount}`] : []),
       "--workers=1",
       "--forbid-only",
-      "--reporter=line,json",
+      `--reporter=${process.env.GITHUB_ACTIONS ? "list" : "line"},json`,
     ],
     {
       cwd: process.cwd(),

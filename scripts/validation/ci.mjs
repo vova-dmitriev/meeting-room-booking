@@ -33,7 +33,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       CI: "1",
       NEXT_TELEMETRY_DISABLED: "1",
       STORYBOOK_DISABLE_TELEMETRY: "1",
-      VALIDATION_TEST_WORKERS: "1",
       RAYON_NUM_THREADS: "1",
       UV_THREADPOOL_SIZE: "1",
       OMP_NUM_THREADS: "1",
