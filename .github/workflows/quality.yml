@@ -311,6 +311,8 @@ jobs:
       VERCEL_APP_PROJECT_ID: ${{ vars.VERCEL_APP_PROJECT_ID }}
       VERCEL_STORYBOOK_PROJECT_ID: ${{ vars.VERCEL_STORYBOOK_PROJECT_ID }}
       VERCEL_TELEMETRY_DISABLED: "1"
+      VERCEL_APP_BYPASS_SECRET: ${{ secrets.VERCEL_APP_BYPASS_SECRET }}
+      VERCEL_STORYBOOK_BYPASS_SECRET: ${{ secrets.VERCEL_STORYBOOK_BYPASS_SECRET }}
       E2E_SELECTION: ${{ needs.complete-snapshot.outputs.e2e_selection }}
     steps:
       - name: Check out validated main
